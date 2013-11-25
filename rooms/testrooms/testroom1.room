@@ -1,0 +1,30 @@
+$$$RoomName
+TestRoom
+
+$$$RoomDesc
+This room seems very empty except for a small round table
+in the very center. This table is covered by a white tablecloth
+and has a single mysterious object sitting exactly in the center
+of the table. Also there is an old man. 
+
+$$$Exits
+under table=under table
+
+$$$talktargets
+old man=test_npc
+
+$$$old man
+He appears very old. maybe you should talk to him?
+
+$$$Table
+This seems to be a normal table
+
+$$$Object
+You cant seem to descern what it is
+
+$$$Tablecloth
+perfect white linen tablecloth. Nice!
+
+
+$$$Exits
+under table=testroom2

@@ -1,0 +1,13 @@
+$$$character
+test_monster
+
+$$$start
+You walk up to the monster and say 'hi'
+almost as soon as the words leave your mouth
+he leaps toward you!!
+
+$$$startchoices
+Continue...=exit
+
+$$$exitstartsfight
+test_monster
