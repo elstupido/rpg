@@ -2,14 +2,14 @@ from cmd import Cmd
 from load_world import LoadWorld,LoadDialogues
 
 class Dialogue(object):
-
-    d = LoadDialogues()
-    world = d.world
-    current_blurb = 'start'
     
     def __init__(self, character):
+        self.d = LoadDialogues()
+        self.world = self.d.world
+        self.current_blurb = 'start'
         self.character = self.d.world['dialogue'].get(character)
         self.currentChoiceMap = self.getChoiceMap()
+
 
     def startDialogue(self):
         print(self.character.get('start'))
@@ -83,17 +83,7 @@ class DialogueInterpreter(Cmd,object):
     dialogue_action = None
     
     def __init__(self, completekey='tab', stdin=None, stdout=None,dialogue=None):
-        import string, sys
-        if stdin is not None:
-            self.stdin = stdin
-        else:
-            self.stdin = sys.stdin
-        if stdout is not None:
-            self.stdout = stdout
-        else:
-            self.stdout = sys.stdout
-        self.cmdqueue = []
-        self.completekey = completekey
+        super(DialogueInterpreter,self).__init__(self)
         self.prompt = self.prompt + '(talk) '
         self.dialogue = Dialogue(dialogue)
         self.dialogue_action = True

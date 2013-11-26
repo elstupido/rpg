@@ -13,5 +13,4 @@ class World(object):
         self.items = {}    
         self.current_state = self.LOADING
         self.state = [self.current_state]
-    
-    
+        self.current_interface = None
