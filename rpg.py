@@ -7,25 +7,29 @@ import logging
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-print(log.getEffectiveLevel())
 log.debug('Logging init...')
-log.info('WHAT THE FUCK IS THIS SHIT')
 
-#HI SHIFTY!
 
 class Interface(Cmd,object):
 
+    def __init__(self):
+        super(Interface,self).__init__(self)
+        self.w = LoadWorld()
+        self.currentRoom = 'testroom'
+        self.room = self.w.world['Rooms'][self.currentRoom]
+        self.DEBUG = True
+        self.targets = None
+        self.exits = None
+        self.starting_wep = Weapon()
+        self.player = Player(self.starting_wep)
+        self.c = LoadCharacters()
+        self.characters = self.c.ALL_CHARACTERS
+        self.prompt = self.get_prompt()
 
-    
-    w = LoadWorld()
-    world = w
-    currentRoom = 'testroom'
-    room = w.world['Rooms'][currentRoom]
-    DEBUG = True
-    starting_wep = Weapon()
-    player = Player(starting_wep)
-    c = LoadCharacters()
-    characters = c.ALL_CHARACTERS
+    def get_prompt(self):
+        return \
+        '**rpg**\n%s, look ->%s\nexits -> %s\n(Your Command, Sire?>' % \
+        (self.currentRoom,self.targets,self.exits)
     
     def do_look(self,s):
         log.debug(self.currentRoom)
@@ -41,33 +45,33 @@ class Interface(Cmd,object):
 
     def do_go(self,s):
         exitStr = self.room.get('exits')
-        exits = {}
+        self.exits = {}
         for eachExit in exitStr:
             command,target = eachExit.split('=')
-            exits[command] = target
-        log.debug('exits: %s' % exits)
-        if s in exits.keys():
-            self.currentRoom = exits.get(s)
+            self.exits[command] = target
+        log.debug('exits: %s' % self.exits)
+        if s in self.exits.keys():
+            self.currentRoom = self.exits.get(s)
             self.do_look(None)
 
     def do_talk(self,s):
         raw_targets = self.room.get('talktargets')
-        targets = {}
+        self.targets = {}
         if raw_targets:
             target_list = raw_targets.split(',')
             for target in target_list:
                 key,value = target.split('=')
-                targets[key]=value.rstrip()
+                self.targets[key]=value.rstrip()
 
-        if s in targets.keys():
-            di = DialogueInterpreter(dialogue=targets[s])
+        if s in self.targets.keys():
+            di = DialogueInterpreter(dialogue=self.targets[s])
             resp = di.cmdloop()
             if(di.dialogue_action == True):
                 pass
             else:
                 if di.dialogue_action.get('action')=='Fight':
-                    log.debug('starting dialog fight %s' % self.characters[targets[s]])
-                    fi = FightInterpreter(player=self.player,character=self.characters[targets[s]])
+                    log.debug('starting dialog fight %s' % self.characters[self.targets[s]])
+                    fi = FightInterpreter(player=self.player,character=self.characters[self.targets[s]])
                     fi.cmdloop()
                     
     
