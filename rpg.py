@@ -11,6 +11,8 @@ print(log.getEffectiveLevel())
 log.debug('Logging init...')
 log.info('WHAT THE FUCK IS THIS SHIT')
 
+#HI SHIFTY!
+
 class Interface(Cmd,object):
 
 
