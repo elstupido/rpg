@@ -24,16 +24,25 @@ class Interface(Cmd,object):
         self.player = Player(self.starting_wep)
         self.c = LoadCharacters()
         self.characters = self.c.ALL_CHARACTERS
+        self.looktargets = []
         self.prompt = self.get_prompt()
+
+    def postcmd(self,stop,line):
+        self.prompt = self.get_prompt()
+        
 
     def get_prompt(self):
         return \
-        '**rpg**\n%s, look ->%s\nexits -> %s\n(Your Command, Sire?>' % \
-        (self.currentRoom,self.targets,self.exits)
+        '**rpg**\nYou are in %s\nlook ->%s\nexits -> %s\n(Your Command, Sire?>' % \
+        (self.currentRoom,self.looktargets,self.exits)
     
     def do_look(self,s):
         log.debug(self.currentRoom)
         self.room = self.w.world['Rooms'][self.currentRoom]
+        self.looktargets = []
+        for looktarget,description in self.room.items():
+            if looktarget != 'exits' and looktarget != 'roomdesc' and looktarget != 'talktargets':
+                self.looktargets.append(looktarget)
         if(s):    
             thing = self.room.get(s.lower())
             if thing:
@@ -42,6 +51,7 @@ class Interface(Cmd,object):
                 print('Try as you might, you cant see much more about %s' % s)
         else:
             print(self.room.get('roomdesc'))
+        
 
     def do_go(self,s):
         exitStr = self.room.get('exits')
