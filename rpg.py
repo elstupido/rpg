@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 print(log.getEffectiveLevel())
 log.debug('Logging init...')
-log.info('WHAT THE FUCK IS THIS')
+log.info('WHAT THE FUCK IS THIS SHIT')
 
 class Interface(Cmd,object):
 
