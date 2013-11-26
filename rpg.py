@@ -1,8 +1,9 @@
 from cmd import Cmd
-from load_world import LoadWorld,LoadDialogues,LoadCharacters
-from dialogues import Dialogue,DialogueInterpreter
-from character import Npc,Player,Monster,Weapon
+from load_world import LoadWorld,LoadCharacters
+from dialogues import DialogueInterpreter
+from character import Player,Weapon
 from combat import FightInterpreter
+from world_state import World
 import logging
 
 log = logging.getLogger(__name__)
@@ -14,6 +15,8 @@ class Interface(Cmd,object):
 
     def __init__(self):
         super(Interface,self).__init__(self)
+        self.world = World()
+        self.world.current_state = self.world.LOADING
         self.w = LoadWorld()
         self.currentRoom = 'testroom'
         self.room = self.w.world['Rooms'][self.currentRoom]
@@ -75,7 +78,7 @@ class Interface(Cmd,object):
 
         if s in self.targets.keys():
             di = DialogueInterpreter(dialogue=self.targets[s])
-            resp = di.cmdloop()
+            di.cmdloop()
             if(di.dialogue_action == True):
                 pass
             else:
