@@ -1,3 +1,4 @@
+{'testroom':
 {'exits': ['under table=testroom2'],
  'object': 'You cant seem to descern what it is\n\n',
  'old man': 'He appears very old. maybe you should talk to him?\n\n',
@@ -5,3 +6,4 @@
  'table': 'This seems to be a normal table\n\n',
  'tablecloth': 'perfect white linen tablecloth. Nice!\n\n\n',
  'talktargets': 'old man=test_npc\n\n'}
+}

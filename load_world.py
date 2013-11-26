@@ -69,28 +69,30 @@ class LoadWorld(object):
             filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
         
         for file in filelist:
-            roomName = None
-            print('parsing %s' % file)
-            with open(file) as fh:
-                for line in fh:
-                    if line.find('$$$') == 0:
-                        if line.split('$$$')[1].strip() == 'RoomName':
-                            roomName = fh.readline()
-                            roomName = roomName.strip().lower()
-                            print('Found Room %s' % roomName)
-                            self.world['Rooms'][roomName] = {}
-                        else:
-                            key = line.split('$$$')[1].strip().lower()
-                    else:
-                        if roomName and key:
-                            if key == 'exits':
-                                self.world['Rooms'][roomName][key] = line.strip().lower().split(',')
-                            elif self.world['Rooms'][roomName].get(key):
-                                self.world['Rooms'][roomName][key] += line
+            if file.find('.py') == -1:
+                print(file)
+                roomName = None
+                print('parsing %s' % file)
+                with open(file) as fh:
+                    for line in fh:
+                        if line.find('$$$') == 0:
+                            if line.split('$$$')[1].strip() == 'RoomName':
+                                roomName = fh.readline()
+                                roomName = roomName.strip().lower()
+                                print('Found Room %s' % roomName)
+                                self.world['Rooms'][roomName] = {}
                             else:
-                                self.world['Rooms'][roomName][key] = line
-            with open(file + '.py','w') as out:
-                out.write(pprint.pformat(self.world['Rooms'][roomName]))
+                                key = line.split('$$$')[1].strip().lower()
+                        else:
+                            if roomName and key:
+                                if key == 'exits':
+                                    self.world['Rooms'][roomName][key] = line.strip().lower().split(',')
+                                elif self.world['Rooms'][roomName].get(key):
+                                    self.world['Rooms'][roomName][key] += line
+                                else:
+                                    self.world['Rooms'][roomName][key] = line
+                with open(file + '.py','w') as out:
+                    out.write("{'" + str(roomName) + "':\n" + pprint.pformat(self.world['Rooms'][roomName]) + '\n}')
 
 
 class LoadDialogues(object):
@@ -129,8 +131,7 @@ def convertRoomFiles():
     import pprint
     l = LoadWorld()
     
-    pprint.pprint(l.world, width=8)
-
+    
 def main():
     convertRoomFiles()
 
