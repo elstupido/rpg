@@ -92,7 +92,21 @@ class LoadWorld(object):
                                 else:
                                     self.world['Rooms'][roomName][key] = line
                 with open(file + '.py','w') as out:
-                    out.write("{'" + str(roomName) + "':\n" + pprint.pformat(self.world['Rooms'][roomName]) + '\n}')
+                    exits = self.world['Rooms'][roomName].pop('exits',None)
+                    exits = dict([exit.split('=') for exit in exits])
+                    desc = self.world['Rooms'][roomName].pop('roomdesc')
+                    out.write("""
+from room import Room
+r = Room()
+r.roomname = '%s'
+r.exits = %s
+r.roomdesc = \"""
+%s
+\"""
+r.looktargets = %s
+""" %
+(roomName,pprint.pformat(exits),desc,pprint.pformat(self.world['Rooms'][roomName]))
+)
 
 
 class LoadDialogues(object):
