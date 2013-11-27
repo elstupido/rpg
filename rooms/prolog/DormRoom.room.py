@@ -1,4 +1,3 @@
-
 from room import Room
 r = Room()
 r.roomname = 'dormroom'

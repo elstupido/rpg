@@ -3,110 +3,101 @@ from os.path import isfile,join
 from character import Monster,Npc,Player,Weapon
 import pprint
 
-roomdir = '.\\rooms\\'
-dialoguedir = '.\\dialogues\\'
-characterdir = '.\\characters\\'
 
-class LoadCharacters(object):
-
-    ALL_CHARACTERS = {}
+class World(object):
 
     def __init__(self):
-        character_name = None
+        self.roomdir = '.\\rooms\\'
+        self.dialoguedir = '.\\dialogues\\'
+        self.characterdir = '.\\characters\\'
+        self.rooms = {}
+        self.characters = {}
+        self.players = {}
+
+    def loadCharacters(self):
         filelist = []
         character_dict ={}
-        for root,directory,files in walk(characterdir):
+        for root,empty,files in walk(self.characterdir):
             filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
             
         for file in filelist:
             print('parsing %s' % file)
             fh = open(file)
             m = None
-            execTarget = { 'm' : m }
-            exec(fh.read(),execTarget)
-            character_dict[execTarget['m'].character_id] = execTarget['m']
+            exec_target = { 'm' : m }
+            exec(fh.read(),exec_target)
+            character_dict[exec_target['m'].character_id] = exec_target['m']
 
-        self.ALL_CHARACTERS = character_dict
-            
-class LoadFromFile(object):
-
-    
-    def __init__(self,type=None):
-        if type == 'rooms':
-            dir = roomdir
-        elif type == 'characters':
-            dir = characterdir
-        elif type == 'dialogues':
-            dir = dialoguedir
-        self.world = {}
+        self.characters = character_dict
+                
+    def loadRooms(self):
         filelist = []
         return_dict ={}
-        for root,directory,files in walk(dir):
-            #directory is always empty?
-            filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
+        for root,empty,files in walk(self.roomdir):
+            filelist = filelist + [join(root,f) for f in files if isfile(join(root,f)) and f.find('.py') != -1]
             
         for file in filelist:
             print('parsing %s' % file)
             fh = open(file)
-            m = None
-            execTarget = { 'm' : m }
-            exec(fh.read(),execTarget)
-            return_dict[execTarget['m'].room_id] = execTarget['m']
+            exec_target = {}
+            exec(fh.read(),exec_target)
+            print(exec_target['r'])
+            return_dict[exec_target['r'].roomname] = exec_target['r']
 
-        self.world = return_dict
+        self.rooms = return_dict
 
-
-class LoadWorld(object):
-    
-    world = { 'Rooms' : {} }
-    
-    def __init__(self):
-        roomName = None
-        key = None
-        roomDir = roomdir
-        filelist = []
-        for root,directory,files in walk(roomDir):
-            filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
-        
-        for file in filelist:
-            if file.find('.py') == -1:
-                print(file)
-                roomName = None
-                print('parsing %s' % file)
-                with open(file) as fh:
-                    for line in fh:
-                        if line.find('$$$') == 0:
-                            if line.split('$$$')[1].strip() == 'RoomName':
-                                roomName = fh.readline()
-                                roomName = roomName.strip().lower()
-                                print('Found Room %s' % roomName)
-                                self.world['Rooms'][roomName] = {}
-                            else:
-                                key = line.split('$$$')[1].strip().lower()
-                        else:
-                            if roomName and key:
-                                if key == 'exits':
-                                    self.world['Rooms'][roomName][key] = line.strip().lower().split(',')
-                                elif self.world['Rooms'][roomName].get(key):
-                                    self.world['Rooms'][roomName][key] += line
-                                else:
-                                    self.world['Rooms'][roomName][key] = line
-                with open(file + '.py','w') as out:
-                    exits = self.world['Rooms'][roomName].pop('exits',None)
-                    exits = dict([exit.split('=') for exit in exits])
-                    desc = self.world['Rooms'][roomName].pop('roomdesc')
-                    out.write("""
-from room import Room
-r = Room()
-r.roomname = '%s'
-r.exits = %s
-r.roomdesc = \"""
-%s
-\"""
-r.looktargets = %s
-""" %
-(roomName,pprint.pformat(exits),desc,pprint.pformat(self.world['Rooms'][roomName]))
-)
+# "Depricated"
+# class LoadWorld(object):
+#     
+#     world = { 'Rooms' : {} }
+#     
+#     def __init__(self):
+#         roomName = None
+#         key = None
+#         roomDir = roomdir
+#         filelist = []
+#         for root,directory,files in walk(roomDir):
+#             filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
+#         
+#         for file in filelist:
+#             if file.find('.py') == -1:
+#                 print(file)
+#                 roomName = None
+#                 print('parsing %s' % file)
+#                 with open(file) as fh:
+#                     for line in fh:
+#                         if line.find('$$$') == 0:
+#                             if line.split('$$$')[1].strip() == 'RoomName':
+#                                 roomName = fh.readline()
+#                                 roomName = roomName.strip().lower()
+#                                 print('Found Room %s' % roomName)
+#                                 self.world['Rooms'][roomName] = {}
+#                             else:
+#                                 key = line.split('$$$')[1].strip().lower()
+#                         else:
+#                             if roomName and key:
+#                                 if key == 'exits':
+#                                     self.world['Rooms'][roomName][key] = line.strip().lower().split(',')
+#                                 elif self.world['Rooms'][roomName].get(key):
+#                                     self.world['Rooms'][roomName][key] += line
+#                                 else:
+#                                     self.world['Rooms'][roomName][key] = line
+#                 with open(file + '.py','w') as out:
+#                     exits = self.world['Rooms'][roomName].pop('exits',None)
+#                     exits = dict([exit.split('=') for exit in exits])
+#                     desc = self.world['Rooms'][roomName].pop('roomdesc')
+#                     out.write("""
+# from room import Room
+# r = Room()
+# r.roomname = '%s'
+# r.exits = %s
+# r.roomdesc = \"""
+# %s
+# \"""
+# r.looktargets = %s
+# """ %
+# (roomName,pprint.pformat(exits),desc,pprint.pformat(self.world['Rooms'][roomName]))
+# )
 
 
 class LoadDialogues(object):
@@ -116,7 +107,7 @@ class LoadDialogues(object):
     def __init__(self):
         roomName = None
         key = None
-        roomDir = dialoguedir
+        roomDir = '.\\dialogues\\'
         filelist = []
         for root,directory,files in walk(roomDir):
             filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
@@ -143,7 +134,13 @@ class LoadDialogues(object):
 
 def convertRoomFiles():
     import pprint
-    l = LoadWorld()
+    w = World()
+    w.loadRooms()
+    w.loadCharacters()
+    print(w.rooms)
+    print(w.characters)
+     
+    
     
     
 def main():

@@ -1,5 +1,5 @@
 from cmd import Cmd
-from load_world import LoadWorld,LoadDialogues
+from load_world import World,LoadDialogues
 
 class Dialogue(object):
     
