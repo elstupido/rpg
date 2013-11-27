@@ -1,7 +1,7 @@
 import time
 from cmd import Cmd
 import threading
-from queue import Queue
+from queue import Queue,Empty
 from load_world import World
 from dialogues import DialogueInterpreter
 from character import Player,Weapon
@@ -10,20 +10,24 @@ import logging
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+#EVIL
+#log.debug = log.error
 log.debug('Logging init...')
 
 
 class Interface(Cmd,object):
 
-	def __init__(self,world = None,queue=None):
+	def __init__(self,world = None,queue=None, inqueue=None):
 		super(Interface,self).__init__(self)
 		self.queue = queue
+		self.in_queue = inqueue
 		self.prompt = self.get_prompt()
 		
 
 	def postcmd(self,stop,line):
 		self.prompt = self.get_prompt()
-		
+		while not self.in_queue.empty():
+			print(self.in_queue.get())
 	
 	def get_prompt(self):
 		return '(broke the prompt, sorry>'
@@ -46,12 +50,13 @@ class Interface(Cmd,object):
 class GameEngine(threading.Thread):
 	
 	
-	def __init__(self,world=None,queue=None):
+	def __init__(self,world=None,queue=None,outqueue=None):
 		super(GameEngine,self).__init__(target=self)
 		self.world = world
 		self.world.loadRooms()
 		self.world.loadCharacters()
 		self.request_queue = queue
+		self.out_queue = outqueue
 		self.status = 'STARTING'
 		self.current_room = self.world.rooms['testroom']
 		self.DEBUG = True
@@ -66,14 +71,17 @@ class GameEngine(threading.Thread):
 			self.processUpdates()
 	
 	def processUpdates(self):
-		request = self.request_queue.get()
-		self.cout(request)
-		for command,s in request.items():
-			#get the function from locals() and run it
-# 			try:
+		try:
+			request = self.request_queue.get(block=False)
+			self.cout(request)
+			for command,s in request.items():
 				func = getattr(self, command)
-				print(s)
+				self.cout('game thread processing command %s %s'%(command,s))
 				func(s)
+				self.queue.task_done()
+		except Empty:
+			pass
+
 # 			except AttributeError:
 # 				self.cout('cant find helper function for command %s' % command)
 			
@@ -82,28 +90,26 @@ class GameEngine(threading.Thread):
 		return True
 	
 	def do_look(self,s):
-		log.debug(self.current_room)
-		self.looktargets = []
-		for looktarget,description in self.current_room.looktargets.items():
-			if looktarget != 'exits' and looktarget != 'roomdesc' and looktarget != 'talktargets':
-				self.looktargets.append(looktarget)
+		log.debug(self.current_room.roomname)
+		log.debug(self.current_room.looktargets)
 		if(s):	
 			thing = self.current_room.looktargets.get(s)
 			if thing:
-				print(thing)
+				self.cout(thing)
 			else:
-				print('Try as you might, you cant see much more about %s' % s)
+				self.cout('Try as you might, you cant see much more about %s' % s)
 		else:
-			print(self.current_room.roomdesc)
+			self.cout(self.current_room.roomdesc)
+		
 		
 
 	def do_go(self,s):
 		exits = self.current_room.exits
 		if s in exits.keys():
-			print(self.world.rooms)
-			print(s)
 			self.current_room = self.world.rooms.get(exits[s])
 			self.do_look(None)
+		
+	
 
 	def do_talk(self,s):
 		targets = self.current_room.talktargets 
@@ -117,20 +123,22 @@ class GameEngine(threading.Thread):
 					log.debug('starting dialog fight %s' % self.characters[targets[s]])
 					fi = FightInterpreter(player=self.player,character=self.characters[targets[s]])
 					fi.cmdloop()
+		
 	
 	def cout(self,message):
 		'''
 		cout: prints output to player console
 		'''
-		print('\n%s' % message)
+		self.out_queue.put(message)
 
 
 
 def main():
 	w = World()
 	q = Queue()
-	i = Interface(world=w,queue=q)
-	g = GameEngine(world=w,queue=q)
+	iq = Queue()
+	i = Interface(world=w,queue=q,inqueue=iq)
+	g = GameEngine(world=w,queue=q,outqueue=iq)
 	g.start()
 	i.cmdloop()
 	g.join()
