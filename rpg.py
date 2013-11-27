@@ -7,12 +7,35 @@ from dialogues import DialogueInterpreter
 from character import Player,Weapon
 from combat import FightInterpreter
 import logging
+from tkinter import Tk, Frame, BOTH
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 #EVIL
 #log.debug = log.error
 log.debug('Logging init...')
+
+class RpgWindow(Frame):
+	
+	def __init__(self,parent):
+		Frame.__init__(self,parent)
+		self.parent = parent
+		self.initUI()
+		self.centerWindow()
+		
+	def initUI(self):
+		self.parent.title('RPG -- Really Pretty Good')
+		self.pack(fill = BOTH,expand = 1)
+
+	def centerWindow(self):
+		w = 620
+		h = 480
+		sw = self.parent.winfo_screenwidth()
+		sh = self.parent.winfo_screenheight()
+		x = (sw - w)/2
+		y = (sh - h)/2
+		self.parent.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
 
 class Interface(Cmd,object):
@@ -134,6 +157,7 @@ class GameEngine(threading.Thread):
 
 
 def main():
+	"""
 	w = World()
 	q = Queue()
 	iq = Queue()
@@ -142,6 +166,11 @@ def main():
 	g.start()
 	i.cmdloop()
 	g.join()
-
+	"""
+	root = Tk()
+	root.geometry('300x600+0+0')
+	app = RpgWindow(root)
+	root.mainloop()
+	 
 if __name__ == "__main__":
 	main()
