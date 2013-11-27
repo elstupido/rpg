@@ -7,7 +7,7 @@ from dialogues import DialogueInterpreter
 from character import Player,Weapon
 from combat import FightInterpreter
 import logging
-from tkinter import Tk, Frame, BOTH
+from tkinter import Tk, Frame, BOTH, Text, END, Entry
 
 
 log = logging.getLogger(__name__)
@@ -21,12 +21,23 @@ class RpgWindow(Frame):
 	def __init__(self,parent):
 		Frame.__init__(self,parent)
 		self.parent = parent
+		self.w = World()
+		self.q = Queue()
+		self.iq = Queue()
+		self.g = GameEngine(world=self.w,queue=self.q,outqueue=self.iq)
+		self.g.start()
 		self.initUI()
 		self.centerWindow()
 		
 	def initUI(self):
 		self.parent.title('RPG -- Really Pretty Good')
 		self.pack(fill = BOTH,expand = 1)
+		self.player_console = Entry(self.parent)
+		self.output = Text(self.parent,height=30.0,width=30,bg='red')
+		self.output.pack(fill=BOTH)
+		self.player_console.pack(fill=BOTH)
+		self.i = Interface(world=self.w,queue=self.q,inqueue=self.iq,output = self.output,input=self.player_console)
+		self.i.start()
 
 	def centerWindow(self):
 		w = 620
@@ -38,22 +49,31 @@ class RpgWindow(Frame):
 		self.parent.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
 
-class Interface(Cmd,object):
+class Interface(Cmd,threading.Thread):
 
-	def __init__(self,world = None,queue=None, inqueue=None):
-		super(Interface,self).__init__(self)
+	def __init__(self,world = None,queue=None, inqueue=None, input=None, output=None):
+		Cmd.__init__(self)
+		threading.Thread.__init__(self)
 		self.queue = queue
 		self.in_queue = inqueue
+		self.output = output
+		self.input = input
 		self.prompt = self.get_prompt()
 		
-
+# 	def precmd(self,stop,line):
+# 		line = self.input.get()
+# 		print('got command %s' % line)
+	
 	def postcmd(self,stop,line):
 		self.prompt = self.get_prompt()
+		time.sleep(0.1)
 		while not self.in_queue.empty():
 			print(self.in_queue.get())
+# 			self.parent.insert(END,self.in_queue.get())
 	
 	def get_prompt(self):
-		return '(broke the prompt, sorry>'
+		return '(broke the prompt, sorry >' 
+		#self.input.insert(END,'(>')
 		#'**rpg**\nYou are in %s\nlook ->%s\nexits -> %s\n(>' % \
 		#(self.current_room,self.looktargets,self.exits)
 	
@@ -132,7 +152,6 @@ class GameEngine(threading.Thread):
 			self.current_room = self.world.rooms.get(exits[s])
 			self.do_look(None)
 		
-	
 
 	def do_talk(self,s):
 		targets = self.current_room.talktargets 
@@ -157,20 +176,17 @@ class GameEngine(threading.Thread):
 
 
 def main():
-	"""
 	w = World()
 	q = Queue()
 	iq = Queue()
-	i = Interface(world=w,queue=q,inqueue=iq)
 	g = GameEngine(world=w,queue=q,outqueue=iq)
+	i = Interface(world=w,queue=q,inqueue=iq)
 	g.start()
-	i.cmdloop()
-	g.join()
-	"""
-	root = Tk()
-	root.geometry('300x600+0+0')
-	app = RpgWindow(root)
-	root.mainloop()
+	i.cmdloop('WELCOME TO RPG!!!\nPlease Enter Command\n')
+# 	root = Tk()
+# 	root.geometry('300x600+0+0')
+# 	app = RpgWindow(root)
+# 	root.mainloop()
 	 
 if __name__ == "__main__":
 	main()
