@@ -4,7 +4,7 @@ r = Room()
 r.roomname = 'elevatorroof'
 r.exits = {'elevator': 'elevator'}
 r.roomdesc = """
-Good God its dirty, some one left their tool box up here.
+Good God its dirty, somde one left their tool box up here.
 
 
 """
