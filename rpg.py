@@ -101,7 +101,7 @@ class GameEngine(threading.Thread):
 		self.request_queue = queue
 		self.out_queue = outqueue
 		self.status = 'STARTING'
-		self.current_room = self.world.rooms['testroom']
+		self.current_room = self.world.rooms['lobby']
 		self.DEBUG = True
 		self.starting_wep = Weapon()
 		self.player = Player(self.starting_wep)
