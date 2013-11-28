@@ -72,7 +72,7 @@ class Interface(Cmd,threading.Thread):
 # 			self.parent.insert(END,self.in_queue.get())
 	
 	def get_prompt(self):
-		return '(broke the prompt, sorry >' 
+		return '(HAPPY THANKSGIVING! >' 
 		#self.input.insert(END,'(>')
 		#'**rpg**\nYou are in %s\nlook ->%s\nexits -> %s\n(>' % \
 		#(self.current_room,self.looktargets,self.exits)
