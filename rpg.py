@@ -27,18 +27,22 @@ class RpgWindow(Frame):
 	def __init__(self,parent):
 		Frame.__init__(self,parent)
 		self.parent = parent
+		#set up world and engine
 		self.w = World()
 		self.game_out_q = Queue()
 		self.game_in_q = Queue()
 		self.game_engine = GameEngine(world=self.w,queue=self.game_out_q,outqueue=self.game_in_q)
 		self.game_engine.start()
 		self.centerWindow()
+		#pipe and string var for talking to console
 		read,write = os.pipe()
 		self.output_stream = os.fdopen(read,'r')
 		self.output_stream_writer = os.fdopen(write,'w')
 		self.player_input = StringVar('')
+		#fonts for highlighting targets
 		self.looktargets_font = font.Font(family="Helvetica",size=10,weight="bold")
 		self.exits_font = font.Font(family="Helvetica",size=10,weight="bold",underline=True)
+		#go go go
 		self.initUI()
 	
 	def killBabies(self):
