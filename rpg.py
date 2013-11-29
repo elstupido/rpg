@@ -28,9 +28,9 @@ class RpgWindow(Frame):
 		Frame.__init__(self,parent)
 		self.parent = parent
 		self.w = World()
-		self.q = Queue()
-		self.iq = Queue()
-		self.game_engine = GameEngine(world=self.w,queue=self.q,outqueue=self.iq)
+		self.game_out_q = Queue()
+		self.game_in_q = Queue()
+		self.game_engine = GameEngine(world=self.w,queue=self.game_out_q,outqueue=self.game_in_q)
 		self.game_engine.start()
 		self.centerWindow()
 		read,write = os.pipe()
@@ -45,15 +45,22 @@ class RpgWindow(Frame):
 		self.game_engine.exit = True
 		self.interface.exit = True
 	
+	
+	def get_engine_output(self):
+		while not self.game_in_q.empty():
+#			print(self.game_in_q.get())
+			self.output.insert(END,self.game_in_q.get())
+			self.output.see(END)
+			for target in self.game_engine.current_room.looktargets.keys():
+				self.output.highlight_pattern(target, 'looktargets')
+		self.after_idle(self.get_engine_output)
+	
 	def get_player_input(self,player_input):
-		
-		print(self.player_input.get())
 		self.output_stream_writer.write(self.player_input.get() + '\n')
 		self.output_stream_writer.flush()
 		#clear the entry object
 		self.player_console.delete(0, END)
-		self.after_idle(self.highlight_output)
-		
+		self.after_idle(self.get_engine_output)		
 	
 	def initUI(self):
 		self.parent.title('RPG -- Really Pretty Good')
@@ -68,14 +75,10 @@ class RpgWindow(Frame):
 		self.player_console.pack(fill=BOTH)
 		
 		#set up interpreter
-		self.interface = Interface(world=self.w,game_out_q=self.q,game_in_q=self.iq,stdin=self.output_stream,parent=self.output)
+		self.interface = Interface(world=self.w,game_out_q=self.game_out_q,game_in_q=self.game_in_q,stdin=self.output_stream,parent=self.output)
 		self.interface.start()
-		#
+		
 	
-	def highlight_output(self):
-		for target in self.game_engine.current_room.looktargets.keys():
-			self.output.highlight_pattern(target, 'looktargets')
-		self.output.after_idle(self.highlight_output)
 		
 	def centerWindow(self):
 		w = 620
@@ -108,11 +111,6 @@ class Interface(Cmd,threading.Thread):
 		self.prompt = self.get_prompt()
 		if self.exit:
 			return True
-		time.sleep(0.1)
-		while not self.game_in_q.empty():
-#			print(self.game_in_q.get())
-			self.parent.insert(END,self.game_in_q.get())
-			self.parent.see(END)
 	
 	def get_prompt(self):
 		return '(HAPPY THANKSGIVING! >' 
@@ -219,6 +217,7 @@ class GameEngine(threading.Thread):
 		cout: prints output to player console
 		'''
 		self.out_queue.put(message)
+
 
 
 
