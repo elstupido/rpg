@@ -1,7 +1,7 @@
 from room import Room
 r = Room()
 r.roomname = 'dormroom'
-r.exits = {'out': 'hallway'}
+r.exits = {'out': 'hallway', 'window': 'window'}
 r.roomdesc = """
 Your home away from home, its small but familiar. your unmade bed lies askew, one corner pulled slightly away from the wall. your hated alarm clock  and favorite book sit on your night stand by by the foot of your bed. across the room is your dresser containing your cloths and various knickknacks. the only other objects in the room are your trunk containing your school things, and your computer sitting on a flimsy desk located by a very inviting window.
 

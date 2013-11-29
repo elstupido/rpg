@@ -12,13 +12,13 @@ $$$inquire
 Well "Iam glad you asked," the G man exclaimed with a ever broadening smile, "you see, we at the NDEP are ever vigilant in the defense of our great country!"
 
 $$$inquirechoices
-what exactly do you defend us from you say sarcastically...aliens?=threat
+what exactly do you defend us from you say sarcastically...aliens?
 
 $$$threat
 Unphased,  the g man spreads his arms out, in a wide gesture, we protect and defend against any and every thing, terrorists,spies, gangs. Basically any thing that proves it self a threat=threat
 
 $$$threatchoices
-asking dubiously "aaaannddd...what exactly are you doing here"=recruit
+asking dubiously "aaaannddd...what exactly are you doing here"
 
 $$$recruit
 Good question! I am here hoping to recruit some candidates to become NDEP operators. and let me tell you its one hell of an opportunity. the pay is phenomenal the benefits are unsurpassed and the best part is you get government housing, transport and, gas vouchers!=recruit
