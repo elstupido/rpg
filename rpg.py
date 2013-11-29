@@ -1,3 +1,4 @@
+import sys
 import time
 from cmd import Cmd
 import threading
@@ -7,11 +8,11 @@ from dialogues import DialogueInterpreter
 from character import Player,Weapon
 from combat import FightInterpreter
 import logging
-from tkinter import Tk, Frame, BOTH, Text, END, Entry
-
-
+from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+from io import StringIO
+import os
 #EVIL
 #log.debug = log.error
 log.debug('Logging init...')
@@ -26,50 +27,67 @@ class RpgWindow(Frame):
 		self.iq = Queue()
 		self.g = GameEngine(world=self.w,queue=self.q,outqueue=self.iq)
 		self.g.start()
-		self.initUI()
 		self.centerWindow()
-		
+		read,write = os.pipe()
+		self.output_stream = os.fdopen(read,'r')
+		self.output_stream_writer = os.fdopen(write,'w')
+		self.player_input = StringVar('')
+		self.initUI()
+	
+	def get_player_input(self,player_input):
+		print(self.player_input.get())
+		self.output_stream_writer.write(self.player_input.get() + '\n')
+		self.output_stream_writer.flush()
+		#clear the entry object
+		self.player_console.delete(0, END)
+	
 	def initUI(self):
 		self.parent.title('RPG -- Really Pretty Good')
 		self.pack(fill = BOTH,expand = 1)
-		self.player_console = Entry(self.parent)
-		self.output = Text(self.parent,height=30.0,width=30,bg='red')
+		#set up input/output console
+		self.player_console = Entry(self.parent,textvariable=self.player_input)
+		self.output = Text(self.parent,height=29,width=30,bg='grey')
+		self.player_console.bind('<Return>', self.get_player_input)
 		self.output.pack(fill=BOTH)
 		self.player_console.pack(fill=BOTH)
-		self.i = Interface(world=self.w,queue=self.q,inqueue=self.iq,output = self.output,input=self.player_console)
+		
+		#set up interpreter
+		self.i = Interface(world=self.w,game_out_q=self.q,game_in_q=self.iq,stdin=self.output_stream,parent=self.output)
 		self.i.start()
 
 	def centerWindow(self):
 		w = 620
-		h = 480
-		sw = self.parent.winfo_screenwidth()
-		sh = self.parent.winfo_screenheight()
-		x = (sw - w)/2
-		y = (sh - h)/2
+		h = 488
+		self.sw = self.parent.winfo_screenwidth()
+		self.sh = self.parent.winfo_screenheight()
+		x = (self.sw - w)/2
+		y = (self.sh - h)/2
 		self.parent.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
 
 class Interface(Cmd,threading.Thread):
 
-	def __init__(self,world = None,queue=None, inqueue=None, input=None, output=None):
+	def __init__(self,world = None,game_out_q=None, game_in_q=None, stdin=sys.stdin, intro='HI!', parent=None):
 		Cmd.__init__(self)
+		self.use_rawinput = False
+		self.stdin = stdin
 		threading.Thread.__init__(self)
-		self.queue = queue
-		self.in_queue = inqueue
-		self.output = output
-		self.input = input
+		self.parent = parent
+		self.game_out_q = game_out_q
+		self.game_in_q = game_in_q
 		self.prompt = self.get_prompt()
-		
-# 	def precmd(self,stop,line):
-# 		line = self.input.get()
-# 		print('got command %s' % line)
+		self.intro = intro
+		print('using input %s' % self.stdin)
+
+	def run(self):
+		self.cmdloop(self.intro)
 	
 	def postcmd(self,stop,line):
 		self.prompt = self.get_prompt()
 		time.sleep(0.1)
-		while not self.in_queue.empty():
-			print(self.in_queue.get())
-# 			self.parent.insert(END,self.in_queue.get())
+		while not self.game_in_q.empty():
+#			print(self.game_in_q.get())
+			self.parent.insert(END,self.game_in_q.get())
 	
 	def get_prompt(self):
 		return '(broke the prompt, sorry >' 
@@ -81,13 +99,14 @@ class Interface(Cmd,threading.Thread):
 		return True
 	
 	def do_look(self,s):
-		self.queue.put({'do_look':s})		
+		print('dispatching do_look')
+		self.game_out_q.put({'do_look':s})		
 
 	def do_go(self,s):
-		self.queue.put({'do_go':s})
+		self.game_out_q.put({'do_go':s})
 		
 	def do_talk(self,s):
-		self.queue.put({'do_talk':s})
+		self.game_out_q.put({'do_talk':s})
 
 
 class GameEngine(threading.Thread):
@@ -101,7 +120,7 @@ class GameEngine(threading.Thread):
 		self.request_queue = queue
 		self.out_queue = outqueue
 		self.status = 'STARTING'
-		self.current_room = self.world.rooms['lobby']
+		self.current_room = self.world.rooms['testroom']
 		self.DEBUG = True
 		self.starting_wep = Weapon()
 		self.player = Player(self.starting_wep)
@@ -111,6 +130,7 @@ class GameEngine(threading.Thread):
 	def run(self):
 		start_time = time.time()
 		while True:
+			time.sleep(0.01)
 			self.processUpdates()
 	
 	def processUpdates(self):
@@ -176,17 +196,17 @@ class GameEngine(threading.Thread):
 
 
 def main():
-	w = World()
-	q = Queue()
-	iq = Queue()
-	g = GameEngine(world=w,queue=q,outqueue=iq)
-	i = Interface(world=w,queue=q,inqueue=iq)
-	g.start()
-	i.cmdloop('WELCOME TO RPG!!!\nPlease Enter Command\n')
-# 	root = Tk()
-# 	root.geometry('300x600+0+0')
-# 	app = RpgWindow(root)
-# 	root.mainloop()
+# 	w = World()
+# 	q = Queue()
+# 	iq = Queue()
+# 	g = GameEngine(world=w,queue=q,outqueue=iq)
+# 	i = Interface(world=w,queue=q,inqueue=iq)
+# 	g.start()
+# 	i.cmdloop('WELCOME TO RPG!!!\nPlease Enter Command\n')
+	root = Tk()
+	root.geometry('300x600+0+0')
+	app = RpgWindow(root)
+	root.mainloop()
 	 
 if __name__ == "__main__":
 	main()
