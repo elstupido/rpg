@@ -37,7 +37,7 @@ class RpgWindow(Frame):
 		self.output_stream = os.fdopen(read,'r')
 		self.output_stream_writer = os.fdopen(write,'w')
 		self.player_input = StringVar('')
-		self.font = font.Font(family="Helvetica",size=12,weight="bold")
+		self.font = font.Font(family="Helvetica",size=10,weight="bold")
 		self.initUI()
 	
 	def killBabies(self):
@@ -46,13 +46,13 @@ class RpgWindow(Frame):
 		self.interface.exit = True
 	
 	def get_player_input(self,player_input):
-		for target in self.game_engine.current_room.looktargets.keys():
-			self.output.highlight_pattern(target, 'looktargets')
+		
 		print(self.player_input.get())
 		self.output_stream_writer.write(self.player_input.get() + '\n')
 		self.output_stream_writer.flush()
 		#clear the entry object
 		self.player_console.delete(0, END)
+		self.after_idle(self.highlight_output)
 		
 	
 	def initUI(self):
@@ -70,7 +70,13 @@ class RpgWindow(Frame):
 		#set up interpreter
 		self.interface = Interface(world=self.w,game_out_q=self.q,game_in_q=self.iq,stdin=self.output_stream,parent=self.output)
 		self.interface.start()
-
+		#
+	
+	def highlight_output(self):
+		for target in self.game_engine.current_room.looktargets.keys():
+			self.output.highlight_pattern(target, 'looktargets')
+		self.output.after_idle(self.highlight_output)
+		
 	def centerWindow(self):
 		w = 620
 		h = 488
