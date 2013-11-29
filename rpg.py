@@ -57,9 +57,11 @@ class RpgWindow(Frame):
 			self.output.insert(END,self.game_in_q.get())
 			self.output.see(END)
 			for target in self.game_engine.current_room.looktargets.keys():
-				self.output.highlight_pattern(target, 'looktargets')
+				if target not in self.game_engine.current_room.hide_looktargets:
+					self.output.highlight_pattern(target, 'looktargets')
 			for target in self.game_engine.current_room.exits.keys():
-				self.output.highlight_pattern(target, 'exits')
+				if target not in self.game_engine.current_room.hide_exits:
+					self.output.highlight_pattern(target, 'exits')
 		self.after_idle(self.get_engine_output)
 	
 	def get_player_input(self,player_input):
@@ -83,7 +85,7 @@ class RpgWindow(Frame):
 		self.player_console.pack(fill=BOTH)
 		
 		#set up interpreter
-		self.interface = Interface(world=self.w,game_out_q=self.game_out_q,game_in_q=self.game_in_q,stdin=self.output_stream,parent=self.output)
+		self.interface = Interface(world=self.w,game_out_q=self.game_out_q,stdin=self.output_stream,parent=self.output)
 		self.interface.start()
 		
 	
@@ -100,14 +102,13 @@ class RpgWindow(Frame):
 
 class Interface(Cmd,threading.Thread):
 
-	def __init__(self,world = None,game_out_q=None, game_in_q=None, stdin=sys.stdin, parent=None):
+	def __init__(self,world = None,game_out_q=None, stdin=sys.stdin, parent=None):
 		Cmd.__init__(self)
 		self.use_rawinput = False
 		self.stdin = stdin
 		threading.Thread.__init__(self)
 		self.parent = parent
 		self.game_out_q = game_out_q
-		self.game_in_q = game_in_q
 		self.prompt = self.get_prompt()
 		self.exit = False
 		print('using input %s' % self.stdin)
