@@ -9,12 +9,13 @@ from character import Player,Weapon
 from combat import FightInterpreter
 import logging
 from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar
+import os
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-from io import StringIO
-import os
+
 #EVIL
-#log.debug = log.error
+log.debug = log.error
 log.debug('Logging init...')
 
 class RpgWindow(Frame):
@@ -25,14 +26,19 @@ class RpgWindow(Frame):
 		self.w = World()
 		self.q = Queue()
 		self.iq = Queue()
-		self.g = GameEngine(world=self.w,queue=self.q,outqueue=self.iq)
-		self.g.start()
+		self.game_engine = GameEngine(world=self.w,queue=self.q,outqueue=self.iq)
+		self.game_engine.start()
 		self.centerWindow()
 		read,write = os.pipe()
 		self.output_stream = os.fdopen(read,'r')
 		self.output_stream_writer = os.fdopen(write,'w')
 		self.player_input = StringVar('')
 		self.initUI()
+	
+	def killBabies(self):
+		print('killing babies')
+		self.game_engine.exit = True
+		self.interface.stop = True
 	
 	def get_player_input(self,player_input):
 		print(self.player_input.get())
@@ -46,14 +52,14 @@ class RpgWindow(Frame):
 		self.pack(fill = BOTH,expand = 1)
 		#set up input/output console
 		self.player_console = Entry(self.parent,textvariable=self.player_input)
-		self.output = Text(self.parent,height=29,width=30,bg='grey')
+		self.output = Text(self.parent,wrap='word',height=29,width=30,bg='grey')
 		self.player_console.bind('<Return>', self.get_player_input)
 		self.output.pack(fill=BOTH)
 		self.player_console.pack(fill=BOTH)
 		
 		#set up interpreter
-		self.i = Interface(world=self.w,game_out_q=self.q,game_in_q=self.iq,stdin=self.output_stream,parent=self.output)
-		self.i.start()
+		self.interface = Interface(world=self.w,game_out_q=self.q,game_in_q=self.iq,stdin=self.output_stream,parent=self.output)
+		self.interface.start()
 
 	def centerWindow(self):
 		w = 620
@@ -77,13 +83,16 @@ class Interface(Cmd,threading.Thread):
 		self.game_in_q = game_in_q
 		self.prompt = self.get_prompt()
 		self.intro = intro
+		self.exit = False
 		print('using input %s' % self.stdin)
 
 	def run(self):
-		self.cmdloop(self.intro)
+		self.cmdloop(self.intro)		
 	
 	def postcmd(self,stop,line):
 		self.prompt = self.get_prompt()
+		if self.stop:
+			return True
 		time.sleep(0.1)
 		while not self.game_in_q.empty():
 #			print(self.game_in_q.get())
@@ -99,7 +108,6 @@ class Interface(Cmd,threading.Thread):
 		return True
 	
 	def do_look(self,s):
-		print('dispatching do_look')
 		self.game_out_q.put({'do_look':s})		
 
 	def do_go(self,s):
@@ -120,11 +128,12 @@ class GameEngine(threading.Thread):
 		self.request_queue = queue
 		self.out_queue = outqueue
 		self.status = 'STARTING'
-		self.current_room = self.world.rooms['testroom']
+		self.current_room = self.world.rooms['intersection']
 		self.DEBUG = True
 		self.starting_wep = Weapon()
 		self.player = Player(self.starting_wep)
 		self.queue = queue
+		self.exit = False
 	
 	
 	def run(self):
@@ -132,6 +141,8 @@ class GameEngine(threading.Thread):
 		while True:
 			time.sleep(0.01)
 			self.processUpdates()
+			if self.exit:
+				return True
 	
 	def processUpdates(self):
 		try:
@@ -139,7 +150,7 @@ class GameEngine(threading.Thread):
 			self.cout(request)
 			for command,s in request.items():
 				func = getattr(self, command)
-				self.cout('game thread processing command %s %s'%(command,s))
+				self.cout('game thread processing command %s %s\n'%(command,s))
 				func(s)
 				self.queue.task_done()
 		except Empty:
@@ -148,7 +159,8 @@ class GameEngine(threading.Thread):
 # 			except AttributeError:
 # 				self.cout('cant find helper function for command %s' % command)
 			
-				
+	
+	
 	def do_exit(self,s):
 		return True
 	
@@ -207,6 +219,9 @@ def main():
 	root.geometry('300x600+0+0')
 	app = RpgWindow(root)
 	root.mainloop()
-	 
+	app.killBabies()
+
+	
+	
 if __name__ == "__main__":
 	main()
