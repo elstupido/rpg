@@ -37,7 +37,8 @@ class RpgWindow(Frame):
 		self.output_stream = os.fdopen(read,'r')
 		self.output_stream_writer = os.fdopen(write,'w')
 		self.player_input = StringVar('')
-		self.font = font.Font(family="Helvetica",size=10,weight="bold")
+		self.looktargets_font = font.Font(family="Helvetica",size=10,weight="bold")
+		self.exits_font = font.Font(family="Helvetica",size=10,weight="bold",underline=True)
 		self.initUI()
 	
 	def killBabies(self):
@@ -53,6 +54,8 @@ class RpgWindow(Frame):
 			self.output.see(END)
 			for target in self.game_engine.current_room.looktargets.keys():
 				self.output.highlight_pattern(target, 'looktargets')
+			for target in self.game_engine.current_room.exits.keys():
+				self.output.highlight_pattern(target, 'exits')
 		self.after_idle(self.get_engine_output)
 	
 	def get_player_input(self,player_input):
@@ -68,7 +71,8 @@ class RpgWindow(Frame):
 		#set up input/output console
 		self.player_console = Entry(self.parent,textvariable=self.player_input)
 		self.output = RPGText(self.parent,wrap='word',height=29,width=30,bg='grey')
-		self.output.tag_config('looktargets', font=self.font)
+		self.output.tag_config('looktargets', font=self.looktargets_font)
+		self.output.tag_config('exits', font=self.exits_font)
 		
 		self.player_console.bind('<Return>', self.get_player_input)
 		self.output.pack(fill=BOTH)
