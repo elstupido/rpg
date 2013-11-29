@@ -8,7 +8,7 @@ from dialogues import DialogueInterpreter
 from character import Player,Weapon
 from combat import FightInterpreter
 import logging
-from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar, font
+from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar, font, RIGHT,BOTTOM,LEFT,TOP
 import os
 from ui import RPGText
 
@@ -52,16 +52,27 @@ class RpgWindow(Frame):
 	
 	
 	def get_engine_output(self):
+		output_string = ''
+		go = False
 		while not self.game_in_q.empty():
 #			print(self.game_in_q.get())
-			self.output.insert(END,self.game_in_q.get())
+			output_string += self.game_in_q.get()
+			go = True
+		if go:
+			self.output.insert(END,output_string)
 			self.output.see(END)
+			self.status_output.delete(1.0, END)
+			self.status_output.insert(END, 'Look Targets\n=========\n')
 			for target in self.game_engine.current_room.looktargets.keys():
 				if target not in self.game_engine.current_room.hide_looktargets:
 					self.output.highlight_pattern(target, 'looktargets')
+					self.status_output.insert(END,'%s\n' % target)
+			self.status_output.insert(END, '\n\nExits\n=========\n')
 			for target in self.game_engine.current_room.exits.keys():
 				if target not in self.game_engine.current_room.hide_exits:
 					self.output.highlight_pattern(target, 'exits')
+					self.status_output.insert(END,'%s\n' % target)
+			
 		self.after_idle(self.get_engine_output)
 	
 	def get_player_input(self,player_input):
@@ -73,16 +84,21 @@ class RpgWindow(Frame):
 	
 	def initUI(self):
 		self.parent.title('RPG -- Really Pretty Good')
-		self.pack(fill = BOTH,expand = 1)
 		#set up input/output console
 		self.player_console = Entry(self.parent,textvariable=self.player_input)
-		self.output = RPGText(self.parent,wrap='word',height=29,width=30,bg='grey')
+		self.player_console.bind('<Return>', self.get_player_input)
+		#set up output console
+		self.output = RPGText(self.parent,wrap='word',height=29,width=80,bg='grey')
+		self.status_output = RPGText(self.parent,wrap='word',height=4,width=20)
 		self.output.tag_config('looktargets', font=self.looktargets_font)
 		self.output.tag_config('exits', font=self.exits_font)
 		
-		self.player_console.bind('<Return>', self.get_player_input)
-		self.output.pack(fill=BOTH)
-		self.player_console.pack(fill=BOTH)
+		#do whatever pack does
+		#self.pack(fill = BOTH,expand = 1)
+		self.status_output.pack(fill=BOTH,expand=1,side=RIGHT)
+		self.output.pack(fill=BOTH,expand=1,side=TOP)
+		self.player_console.pack(fill=BOTH,expand=1,side=BOTTOM)
+		
 		
 		#set up interpreter
 		self.interface = Interface(world=self.w,game_out_q=self.game_out_q,stdin=self.output_stream,parent=self.output)
@@ -91,7 +107,7 @@ class RpgWindow(Frame):
 	
 		
 	def centerWindow(self):
-		w = 620
+		w = 720
 		h = 488
 		self.sw = self.parent.winfo_screenwidth()
 		self.sh = self.parent.winfo_screenheight()
