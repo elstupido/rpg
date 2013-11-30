@@ -5,7 +5,9 @@ class Room(object):
         self.exits = None
         self.roomdesc = None
         self.looktargets = {}
-        self.occupants = []
+        self.characters = []
+        self.players = []
+        self.talktargets = []
         self.hide_exits = []
         self.hide_looktargets = []
 

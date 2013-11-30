@@ -13,6 +13,7 @@ class World(object):
         self.rooms = {}
         self.characters = {}
         self.players = {}
+        self.dialogues = {}
 
     def loadCharacters(self):
         filelist = []
@@ -45,6 +46,21 @@ class World(object):
             return_dict[exec_target['r'].roomname] = exec_target['r']
 
         self.rooms = return_dict
+
+    def loadDialogues(self):
+        filelist = []
+        return_dict ={}
+        for root,empty,files in walk(self.dialoguedir):
+            filelist = filelist + [join(root,f) for f in files if isfile(join(root,f)) and f.find('.py') != -1]
+            
+        for file in filelist:
+            print('parsing %s' % file)
+            fh = open(file)
+            exec_target = {}
+            exec(fh.read(),exec_target)
+            return_dict[exec_target['d'].dialogue_name] = exec_target['d']
+
+        self.dialogues = return_dict
 
 # "Depricated"
 # class LoadWorld(object):
@@ -100,36 +116,57 @@ class World(object):
 # )
 
 
-class LoadDialogues(object):
-    
-    world = { 'dialogue' : {} }
-    
-    def __init__(self):
-        roomName = None
-        key = None
-        roomDir = '.\\dialogues\\'
-        filelist = []
-        for root,directory,files in walk(roomDir):
-            filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
-
-        for file in filelist:
-            print('parsing %s' % file)
-            with open(file) as fh:
-                for line in fh:
-                    if line.find('$$$') == 0:
-                        if line.split('$$$')[1].strip() == 'character':
-                            roomName = fh.readline()
-                            roomName = roomName.strip().lower()
-                            print('Found character dialog %s' % roomName)
-                            self.world['dialogue'][roomName] = {}
-                        else:
-                            key = line.split('$$$')[1].strip().lower()
-                    else:
-                        if roomName and key:
-                            if self.world['dialogue'][roomName].get(key):
-                                self.world['dialogue'][roomName][key] += line
-                            else:
-                                self.world['dialogue'][roomName][key] = line
+# class LoadDialogues(object):
+#     
+#     world = { 'dialogue' : {} }
+#     
+#     def __init__(self):
+#         roomName = None
+#         key = None
+#         roomDir = '.\\dialogues\\'
+#         filelist = []
+#         for root,directory,files in walk(roomDir):
+#             filelist = filelist + [join(root,f) for f in files if isfile(join(root,f))]
+# 
+#         for file in filelist:
+#             print('parsing %s' % file)
+#             with open(file) as fh:
+#                 for line in fh:
+#                     if line.find('$$$') == 0:
+#                         if line.split('$$$')[1].strip() == 'character':
+#                             roomName = fh.readline()
+#                             roomName = roomName.strip().lower()
+#                             print('Found character dialog %s' % roomName)
+#                             self.world['dialogue'][roomName] = {}
+#                         else:
+#                             key = line.split('$$$')[1].strip().lower()
+#                     else:
+#                         if roomName and key:
+#                             if self.world['dialogue'][roomName].get(key):
+#                                 self.world['dialogue'][roomName][key] += line
+#                             else:
+#                                 self.world['dialogue'][roomName][key] = line
+#             with open(file + '.py','w') as out:
+#                 character = roomName
+#                 dialogue = self.world['dialogue'][roomName]
+#                 for key,value in dialogue.items():
+#                     choice = []
+#                     if key.find('choices') != -1:
+#                         print(value)
+#                         for v in value.split(','):
+#                             choice.append(v.split('='))
+#                         self.world['dialogue'][roomName][key] = choice
+#                             
+#                  
+#                 out.write("""
+# from dialogue import Dialogue
+# self.character = %s
+# self.dialogue = %s
+# self.startsfight = ''
+# self.givesitem = ''
+# """ %
+# (character,pprint.pformat(dialogue))
+# )
 
 
 def convertRoomFiles():
@@ -137,11 +174,11 @@ def convertRoomFiles():
     w = World()
     w.loadRooms()
     w.loadCharacters()
+    w.loadDialogues()
     print(w.rooms)
     print(w.characters)
-     
-    
-    
+    print(w.dialogues)
+
     
 def main():
     convertRoomFiles()

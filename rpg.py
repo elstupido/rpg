@@ -62,16 +62,19 @@ class RpgWindow(Frame):
 			self.output.insert(END,output_string)
 			self.output.see(END)
 			self.status_output.delete(1.0, END)
-			self.status_output.insert(END, 'Look Targets\n=========\n')
+			self.status_output.insert(END, 'You are in %s' % self.game_engine.current_room.roomname)
 			for target in self.game_engine.current_room.looktargets.keys():
 				if target not in self.game_engine.current_room.hide_looktargets:
 					self.output.highlight_pattern(target, 'looktargets')
-					self.status_output.insert(END,'%s\n' % target)
 			self.status_output.insert(END, '\n\nExits\n=========\n')
 			for target in self.game_engine.current_room.exits.keys():
 				if target not in self.game_engine.current_room.hide_exits:
 					self.output.highlight_pattern(target, 'exits')
 					self.status_output.insert(END,'%s\n' % target)
+			if self.game_engine.current_room.characters:
+				self.status_output.insert(END, '\n\nCharacters\n=========\n')
+			for target in self.game_engine.current_room.characters:
+				self.status_output.insert(END, target)
 			
 		self.after_idle(self.get_engine_output)
 	
