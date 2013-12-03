@@ -4,13 +4,16 @@ from cmd import Cmd
 import threading
 from queue import Queue,Empty
 from load_world import World
-from dialogues import DialogueInterpreter
+from interpreter import BaseInterface
+# from dialogues import DialogueInterpreter
 from character import Player,Weapon
 from combat import FightInterpreter
+from dialogue import DialogueInterpreter
 import logging
 from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar, font, RIGHT,BOTTOM,LEFT,TOP
 import os
 from ui import RPGText
+from io import StringIO
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -35,11 +38,12 @@ class RpgWindow(Frame):
 		self.game_engine.start()
 		self.centerWindow()
 		#pipe and string var for talking to console
-		read,write = os.pipe()
-		self.output_stream = os.fdopen(read,'r')
-		self.output_stream_writer = os.fdopen(write,'w')
+# 		read,write = os.pipe()
+# 		self.output_stream = os.fdopen(read,'r')
+# 		self.output_stream_writer = os.fdopen(write,'w')
 		self.player_input = StringVar('')
 		#fonts for highlighting targets
+		self.output_stream_writer = None
 		self.looktargets_font = font.Font(family="Helvetica",size=10,weight="bold")
 		self.exits_font = font.Font(family="Helvetica",size=10,weight="bold",underline=True)
 		#go go go
@@ -52,36 +56,42 @@ class RpgWindow(Frame):
 	
 	
 	def get_engine_output(self):
-		output_string = ''
+		messages = []
 		go = False
+		#check if we have new messages from game engine
 		while not self.game_in_q.empty():
-#			print(self.game_in_q.get())
-			output_string += self.game_in_q.get()
+			messages.append(self.game_in_q.get())
 			go = True
+		#process messages if we have any
 		if go:
-			self.output.insert(END,output_string)
-			self.output.see(END)
-			self.status_output.delete(1.0, END)
-			self.status_output.insert(END, 'You are in %s' % self.game_engine.current_room.roomname)
-			for target in self.game_engine.current_room.looktargets.keys():
-				if target not in self.game_engine.current_room.hide_looktargets:
-					self.output.highlight_pattern(target, 'looktargets')
-			self.status_output.insert(END, '\n\nExits\n=========\n')
-			for target in self.game_engine.current_room.exits.keys():
-				if target not in self.game_engine.current_room.hide_exits:
-					self.output.highlight_pattern(target, 'exits')
-					self.status_output.insert(END,'%s\n' % target)
-			if self.game_engine.current_room.characters:
-				self.status_output.insert(END, '\n\nCharacters\n=========\n')
-			for target in self.game_engine.current_room.characters:
-				self.status_output.insert(END, target)
-			
-		self.after_idle(self.get_engine_output)
+			for message in messages:
+				if 'display' == message[0]:
+					self.output.insert(END,message[1])
+					self.output.see(END)
+					self.status_output.delete(1.0, END)
+					self.status_output.insert(END, 'You are in %s' % self.game_engine.current_room.roomname)
+					for target in self.game_engine.current_room.looktargets.keys():
+						if target not in self.game_engine.current_room.hide_looktargets:
+							self.output.highlight_pattern(target, 'looktargets')
+					self.status_output.insert(END, '\n\nExits\n=========\n')
+					for target in self.game_engine.current_room.exits.keys():
+						if target not in self.game_engine.current_room.hide_exits:
+							self.output.highlight_pattern(target, 'exits')
+							self.status_output.insert(END,'%s\n' % target)
+					if self.game_engine.current_room.characters:
+						self.status_output.insert(END, '\n\nCharacters\n=========\n')
+					for target in self.game_engine.current_room.characters:
+						self.status_output.insert(END, target)
+				if 'dialogue' == message[0]:
+					self.interface.start_dialogue(message[1])
+
+		#call ourselfs agian
+		self.after(1,self.get_engine_output)
 	
 	def get_player_input(self,player_input):
-		self.output_stream_writer.write(self.player_input.get() + '\n')
-		self.output_stream_writer.flush()
 		#clear the entry object
+		self.interface.stdin = StringIO(self.player_input.get() + '\n')
+		self.interface.cmdloop(stop=False)
 		self.player_console.delete(0, END)
 		self.after_idle(self.get_engine_output)		
 	
@@ -104,8 +114,11 @@ class RpgWindow(Frame):
 		
 		
 		#set up interpreter
-		self.interface = Interface(world=self.w,game_out_q=self.game_out_q,stdin=self.output_stream,parent=self.output)
-		self.interface.start()
+		self.interface = Interface(world=self.w,game_out_q=self.game_out_q,parent=self.output)
+		self.interface.stdin = StringIO('look\n')
+		self.interface.cmdloop(stop=False)
+		self.get_engine_output()
+		
 		
 	
 		
@@ -119,32 +132,13 @@ class RpgWindow(Frame):
 		self.parent.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
 
-class Interface(Cmd,threading.Thread):
+class Interface(BaseInterface):
 
-	def __init__(self,world = None,game_out_q=None, stdin=sys.stdin, parent=None):
-		Cmd.__init__(self)
-		self.use_rawinput = False
-		self.stdin = stdin
-		threading.Thread.__init__(self)
-		self.parent = parent
-		self.game_out_q = game_out_q
-		self.prompt = self.get_prompt()
-		self.exit = False
-		print('using input %s' % self.stdin)
-
-	def run(self):
-		self.cmdloop(self.intro)		
-	
-	def postcmd(self,stop,line):
-		self.prompt = self.get_prompt()
-		if self.exit:
-			return True
-	
-	def get_prompt(self):
-		return '(HAPPY THANKSGIVING! >' 
-		#self.input.insert(END,'(>')
-		#'**rpg**\nYou are in %s\nlook ->%s\nexits -> %s\n(>' % \
-		#(self.current_room,self.looktargets,self.exits)
+	def start_dialogue(self,s):
+		print('starting dialogue: %s' % s)
+		i = DialogueInterpreter(stdin='ppop',dialogue=s)
+		i.prompt = self.prompt
+		i.cmdloop()
 	
 	def do_exit(self,s):
 		return True
@@ -156,9 +150,8 @@ class Interface(Cmd,threading.Thread):
 		self.game_out_q.put({'do_go':s})
 		
 	def do_talk(self,s):
-		self.game_out_q.put({'do_talk':s})
-
-
+		self.game_out_q.put({'do_talk' : s})
+		
 class GameEngine(threading.Thread):
 	
 	
@@ -170,7 +163,7 @@ class GameEngine(threading.Thread):
 		self.request_queue = queue
 		self.out_queue = outqueue
 		self.status = 'STARTING'
-		self.current_room = self.world.rooms['dormroom']
+		self.current_room = self.world.rooms['testroom']
 		self.DEBUG = True
 		self.starting_wep = Weapon()
 		self.player = Player(self.starting_wep)
@@ -213,7 +206,7 @@ class GameEngine(threading.Thread):
 			if thing:
 				self.cout(thing)
 			else:
-				self.cout('Try as you might, you cant see much more about %s' % s)
+				self.cout("Try as you might, you can't see much more about %s\n\n" % s)
 		else:
 			self.cout(self.current_room.roomdesc)
 		
@@ -227,24 +220,23 @@ class GameEngine(threading.Thread):
 		
 
 	def do_talk(self,s):
-		targets = self.current_room.talktargets 
-		if s in targets.keys():
-			di = DialogueInterpreter(dialogue=targets[s])
-			di.cmdloop()
-			if(di.dialogue_action == True):
-				pass
-			else:
-				if di.dialogue_action.get('action')=='Fight':
-					log.debug('starting dialog fight %s' % self.characters[targets[s]])
-					fi = FightInterpreter(player=self.player,character=self.characters[targets[s]])
-					fi.cmdloop()
-		
+		if s in self.current_room.talktargets:
+			self.start_dialogue(s)
+	
+	def prompt(self,s):
+		self.out_queue.put(('prompt',self.current_room.roomname + '>'))
 	
 	def cout(self,message):
 		'''
 		cout: prints output to player console
 		'''
-		self.out_queue.put(message)
+		self.out_queue.put(('display' , message ))
+	
+	def start_dialogue(self,s):
+		'''
+		start_dialogue: starts a dialogue
+		'''
+		self.out_queue.put(('dialogue',s)) 
 
 
 

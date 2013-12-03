@@ -1,13 +1,11 @@
 from cmd import Cmd
-from load_world import World,LoadDialogues
 
-class Dialogue(object):
+class DialogueProcessor(object):
     
-    def __init__(self, character):
-        self.d = LoadDialogues()
-        self.world = self.d.world
+    def __init__(self, character, world):
+        self.world = world
         self.current_blurb = 'start'
-        self.character = self.d.world['dialogue'].get(character)
+        self.character = self.d.world.dialogues.get(character)
         self.currentChoiceMap = self.getChoiceMap()
 
 
@@ -74,28 +72,25 @@ class Dialogue(object):
                     print('exiting....')
                     return True
                 
-                
-
-        
 
 class DialogueInterpreter(Cmd,object):
     
     dialogue_action = None
     
-    def __init__(self, completekey='tab', stdin=None, stdout=None,dialogue=None):
+    def __init__(self, completekey='tab', stdin=None, stdout=None,dialogue=None, world = None):
         super(DialogueInterpreter,self).__init__(self)
         self.prompt = self.prompt + '(talk) '
-        self.dialogue = Dialogue(dialogue)
+        self.dialogue = DialogueProcessor(dialogue)
         self.dialogue_action = True
         response = self.dialogue.startDialogue()
         if response:
             self.dialogue_action = response
 
     def do_exit(self,s):
-       return True
+        return True
    
     def do_hi(self,s):
-       print('HI YOUR DAMN SELF %s' % s)
+        print('HI YOUR DAMN SELF %s' % s)
 
     def do_1(self,s):
         idx = 1
