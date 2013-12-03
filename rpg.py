@@ -119,9 +119,6 @@ class RpgWindow(Frame):
 		self.interface.cmdloop(stop=False)
 		self.get_engine_output()
 		
-		
-	
-		
 	def centerWindow(self):
 		w = 720
 		h = 488

@@ -1,4 +1,6 @@
 from interpreter import BaseInterface
+from cmd import Cmd
+
 
 class Dialogue(object):
 
@@ -8,8 +10,6 @@ class Dialogue(object):
         #dialogue choice that starts fight
         self.startsfight = ''
         self.givesitem = ''
-
-from cmd import Cmd
 
 class DialogueProcessor(object):
     
@@ -56,8 +56,6 @@ class DialogueProcessor(object):
                 choices[key.lstrip().rstrip()] = value.lstrip().rstrip()
         return choices
         
-            
-
     def choice(self,c):
         for index, choice, desc in self.currentChoiceMap:
             if index == c:

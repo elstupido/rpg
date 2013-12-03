@@ -21,5 +21,6 @@ r.looktargets = {'alarm clock': 'its black and noisy \n\n',
  'top drawer': 'Lock is stuck as usual if only I could find somthing to to jimmy  the lock.\n\n',
  'trunk': 'so many books!\n\n',
  'under bed': 'so thats where my pocket knife went! \n\n',
- 'window': 'whata view! long way down though.\n\n'}
- 'door': {'the exit.\n\n'}
+ 'window': 'whata view! long way down though.\n\n',
+ 'door': 'the exit.\n\n',
+ }
