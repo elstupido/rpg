@@ -7,140 +7,92 @@ class Dialogue(object):
     def __init__(self):
         self.character = None
         self.dialogue = {}
+        self.dialogue_name = None
         #dialogue choice that starts fight
         self.startsfight = ''
         self.givesitem = ''
 
 class DialogueProcessor(object):
     
-    def __init__(self, character, world):
+    def __init__(self, dialogue_name=None, world=None,game_engine=None):
         self.world = world
+        self.game_engine = game_engine
         self.current_blurb = 'start'
-        self.character = self.d.world.dialogues.get(character)
+        print('loading dialogue_name: %s' % dialogue_name)
+        self.dialogue_name = self.world.dialogues.get(dialogue_name)
         self.currentChoiceMap = self.getChoiceMap()
 
 
     def startDialogue(self):
-        print(self.character.get('start'))
-        f = self.displayChoices()
-        if self.currentChoiceMap == []:
-            if self.character.get(self.current_blurb + 'startsfight'):
-                fight_target = self.character.get(self.current_blurb + 'startsfight')
-                fight_target = fight_target.strip().lstrip().rstrip()
-                if fight_target:
-                    print('You prepare to fight!!')
-                    return {'action':'Fight','target':fight_target}
-            else:
-                return False
-
+        returnStr = self.dialogue_name.dialogue.get('start') 
+        returnStr += '\n\n' + self.displayChoices()
+        return returnStr
+    
     def displayChoices(self):
+        returnStr = ''
         self.currentChoiceMap = self.getChoiceMap()
         for index, choice, desc in self.currentChoiceMap:
-            print( desc )
+            returnStr += desc + '\n'
+        return returnStr
 
     def getChoiceMap(self):
         index = 1
         choices = self.getChoices()
         self.currentChoiceMap = []
-        for targetChoice,description in choices.items():
-            self.currentChoiceMap.append( [index,targetChoice,str(index) + ') ' + description] )
+        for choice in choices:
+            self.currentChoiceMap.append( [index,choice[1],str(index) + ') ' + choice[0]] )
             index = index + 1
         return self.currentChoiceMap
     
     def getChoices(self):
-        raw_choices = self.character.get(self.current_blurb + 'choices')
-        choices = {}
-        if raw_choices:
-            for choice in raw_choices.split(','):
-                value,key = choice.split('=') #swap key/value from file this makes same choice target impossible!
-                choices[key.lstrip().rstrip()] = value.lstrip().rstrip()
-        return choices
+        return self.dialogue_name.dialogue.get(self.current_blurb + 'choices')
         
     def choice(self,c):
         for index, choice, desc in self.currentChoiceMap:
             if index == c:
                 self.current_blurb = choice
-                if self.character.get(self.current_blurb):
-                    print(self.character.get(self.current_blurb))
-                    if self.character.get(self.current_blurb + 'startsfight'):
-                        fight_target = self.character.get(self.current_blurb + 'startsfight')
-                        fight_target = fight_target.strip().lstrip().rstrip()
-                        if fight_target:
-                            print('You prepare to fight!!')
-                            return {'action':'Fight','target':fight_target}
-                if self.character.get(self.current_blurb + 'choices'):
-                    self.displayChoices()
-                    break
-                elif self.character.get(self.current_blurb + 'startsfight'):
-                    fight_target = self.character.get(self.current_blurb + 'startsfight')
-                    fight_target = fight_target.strip().lstrip().rstrip()
-                    if fight_target:
-                        print('You prepare to fight!!')
-                        return {'action':'Fight','target':fight_target} 
+                if self.dialogue_name.dialogue.get(self.current_blurb):
+                    self.game_engine.cout(self.dialogue_name.dialogue.get(self.current_blurb))
+                if self.dialogue_name.dialogue.get(self.current_blurb + 'choices'):
+                    self.game_engine.cout(self.displayChoices())
+                    break 
                 else:
                     print('exiting....')
-                    return True
+                    self.game_engine.do_exit(True)
                 
 
 class DialogueInterpreter(BaseInterface):
     
     dialogue_action = None
     
-    def __init__(self, completekey='tab', stdin=None, stdout=None,dialogue=None):
-        super(DialogueInterpreter,self).__init__(self)
-        self.prompt = self.prompt + '(talk) '
-        self.dialogue = DialogueProcessor(dialogue)
-        self.dialogue_action = True
-        response = self.dialogue.startDialogue()
-        if response:
-            self.dialogue_action = response
-
     def do_exit(self,s):
-        return True
-   
-    def do_hi(self,s):
-        print('HI YOUR DAMN SELF %s' % s)
+        self.game_out_q.put({'exit':True})
 
     def do_1(self,s):
         idx = 1
-        response = self.dialogue.choice(idx)
-        self.dialogue_action = response
-        return response
+        self.game_out_q.put({'dialogue_choice':idx})
 
     def do_2(self,s):
         idx = 2
-        response = self.dialogue.choice(idx)
-        self.dialogue_action = response
-        return response
+        self.game_out_q.put({'dialogue_choice':idx})
     
     def do_3(self,s):
         idx = 3
-        response = self.dialogue.choice(idx)
-        self.dialogue_action = response
-        return response
+        self.game_out_q.put({'dialogue_choice':idx})
     
     def do_4(self,s):
         idx = 4
-        response = self.dialogue.choice(idx)
-        self.dialogue_action = response
-        return response
+        self.game_out_q.put({'dialogue_choice':idx})
     
     def do_5(self,s):
         idx = 5
-        response = self.dialogue.choice(idx)
-        self.dialogue_action = response
-        return response
+        self.game_out_q.put({'dialogue_choice':idx})
     
     def do_6(self,s):
         idx = 6
-        response = self.dialogue.choice(idx)
-        self.dialogue_action = response
-        return response
+        self.game_out_q.put({'dialogue_choice':idx})
     
     def do_7(self,s):
         idx = 7
-        response = self.dialogue.choice(idx)
-        self.dialogue_action = response
-        return response
-
+        self.game_out_q.put({'dialogue_choice':idx})
     

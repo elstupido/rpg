@@ -70,3 +70,15 @@ class BaseInterface(Cmd):
     def postcmd(self,stop,line):
         if self.exit:
             return True
+        
+class TestInterpreter(BaseInterface):
+    
+    def do_poop(self,s):
+        print('got cmmand poop')
+    
+    def do_exit(self,s):
+        self.game_out_q.put({'do_exit': None})
+        
+    def postcmd(self,stop,line):
+        if self.exit:
+            return True

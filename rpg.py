@@ -4,11 +4,11 @@ from cmd import Cmd
 import threading
 from queue import Queue,Empty
 from load_world import World
-from interpreter import BaseInterface
+from interpreter import BaseInterface,TestInterpreter
 # from dialogues import DialogueInterpreter
 from character import Player,Weapon
 from combat import FightInterpreter
-from dialogue import DialogueInterpreter
+from dialogue import DialogueInterpreter, DialogueProcessor
 import logging
 from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar, font, RIGHT,BOTTOM,LEFT,TOP
 import os
@@ -37,11 +37,9 @@ class RpgWindow(Frame):
 		self.game_engine = GameEngine(world=self.w,queue=self.game_out_q,outqueue=self.game_in_q)
 		self.game_engine.start()
 		self.centerWindow()
-		#pipe and string var for talking to console
-# 		read,write = os.pipe()
-# 		self.output_stream = os.fdopen(read,'r')
-# 		self.output_stream_writer = os.fdopen(write,'w')
 		self.player_input = StringVar('')
+		self.currentInterpreter = None
+		self.baseInterpreter = None
 		#fonts for highlighting targets
 		self.output_stream_writer = None
 		self.looktargets_font = font.Font(family="Helvetica",size=10,weight="bold")
@@ -52,7 +50,7 @@ class RpgWindow(Frame):
 	def killBabies(self):
 		print('killing babies')
 		self.game_engine.exit = True
-		self.interface.exit = True
+		self.currentInterpreter.exit = True
 	
 	
 	def get_engine_output(self):
@@ -65,6 +63,7 @@ class RpgWindow(Frame):
 		#process messages if we have any
 		if go:
 			for message in messages:
+				print(message)
 				if 'display' == message[0]:
 					self.output.insert(END,message[1])
 					self.output.see(END)
@@ -83,15 +82,17 @@ class RpgWindow(Frame):
 					for target in self.game_engine.current_room.characters:
 						self.status_output.insert(END, target)
 				if 'dialogue' == message[0]:
-					self.interface.start_dialogue(message[1])
+					self.currentInterpreter = self.currentInterpreter.start_dialogue(message[1])
+				if 'exit' == message[0]:
+					self.currentInterpreter = self.baseInterpreter
 
 		#call ourselfs agian
 		self.after(1,self.get_engine_output)
 	
 	def get_player_input(self,player_input):
 		#clear the entry object
-		self.interface.stdin = StringIO(self.player_input.get() + '\n')
-		self.interface.cmdloop(stop=False)
+		self.currentInterpreter.stdin = StringIO(self.player_input.get() + '\n')
+		self.currentInterpreter.cmdloop(stop=False)
 		self.player_console.delete(0, END)
 		self.after_idle(self.get_engine_output)		
 	
@@ -114,9 +115,10 @@ class RpgWindow(Frame):
 		
 		
 		#set up interpreter
-		self.interface = Interface(world=self.w,game_out_q=self.game_out_q,parent=self.output)
-		self.interface.stdin = StringIO('look\n')
-		self.interface.cmdloop(stop=False)
+		self.baseInterpreter = Interface(world=self.w,game_out_q=self.game_out_q,parent=self.output)
+		self.currentInterpreter = self.baseInterpreter 
+		self.currentInterpreter.stdin = StringIO('look\n')
+		self.currentInterpreter.cmdloop(stop=False)
 		self.get_engine_output()
 		
 	def centerWindow(self):
@@ -133,9 +135,9 @@ class Interface(BaseInterface):
 
 	def start_dialogue(self,s):
 		print('starting dialogue: %s' % s)
-		i = DialogueInterpreter(stdin='ppop',dialogue=s)
-		i.prompt = self.prompt
-		i.cmdloop()
+		i = DialogueInterpreter(stdin=self.stdin,game_out_q=self.game_out_q)
+		i.prompt = self.prompt + ' > ' + s
+		return i
 	
 	def do_exit(self,s):
 		return True
@@ -157,6 +159,7 @@ class GameEngine(threading.Thread):
 		self.world = world
 		self.world.loadRooms()
 		self.world.loadCharacters()
+		self.world.loadDialogues()
 		self.request_queue = queue
 		self.out_queue = outqueue
 		self.status = 'STARTING'
@@ -166,6 +169,8 @@ class GameEngine(threading.Thread):
 		self.player = Player(self.starting_wep)
 		self.queue = queue
 		self.exit = False
+		#constructed at 'talk' time
+		self.dialogue_processor = None
 	
 	
 	def run(self):
@@ -180,8 +185,10 @@ class GameEngine(threading.Thread):
 			time.sleep(0.09)
 			request = self.request_queue.get(block=False)
 			for command,s in request.items():
+				print(command)
 				func = getattr(self, command)
 # 				self.cout('game thread processing command %s %s\n'%(command,s))
+				print(func)
 				func(s)
 				self.queue.task_done()
 		except Empty:
@@ -193,7 +200,7 @@ class GameEngine(threading.Thread):
 	
 	
 	def do_exit(self,s):
-		return True
+		self.out_queue.put(('exit',True))
 	
 	def do_look(self,s):
 		log.debug(self.current_room.roomname)
@@ -217,8 +224,8 @@ class GameEngine(threading.Thread):
 		
 
 	def do_talk(self,s):
-		if s in self.current_room.talktargets:
-			self.start_dialogue(s)
+		if s in self.current_room.talktargets.keys():
+			self.start_dialogue(self.current_room.talktargets.get(s))
 	
 	def prompt(self,s):
 		self.out_queue.put(('prompt',self.current_room.roomname + '>'))
@@ -233,7 +240,13 @@ class GameEngine(threading.Thread):
 		'''
 		start_dialogue: starts a dialogue
 		'''
+		#prepare processor
+		self.dialogue_processor = DialogueProcessor(world = self.world,dialogue_name = s,game_engine=self)
+		self.cout(self.dialogue_processor.startDialogue())
 		self.out_queue.put(('dialogue',s)) 
+
+	def dialogue_choice(self,s):
+		self.dialogue_processor.choice(s)
 
 
 
