@@ -1,19 +1,18 @@
-import sys
-import time
-from cmd import Cmd
+from io import StringIO
+import logging
+from queue import Queue, Empty
 import threading
-from queue import Queue,Empty
-from load_world import World
-from interpreter import BaseInterface,TestInterpreter
-# from dialogues import DialogueInterpreter
-from character import Player,Weapon
+import time
+from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar, font, RIGHT, \
+	BOTTOM, LEFT, TOP
+
+from character import Player, Weapon
 from combat import FightInterpreter
 from dialogue import DialogueInterpreter, DialogueProcessor
-import logging
-from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar, font, RIGHT,BOTTOM,LEFT,TOP
-import os
+from interpreter import BaseInterface, TestInterpreter
+from load_world import World
 from ui import RPGText
-from io import StringIO
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -21,9 +20,6 @@ log.setLevel(logging.DEBUG)
 #EVIL
 log.debug = log.error
 log.debug('Logging init...')
-
-
-
 
 class RpgWindow(Frame):
 	
@@ -51,7 +47,6 @@ class RpgWindow(Frame):
 		print('killing babies')
 		self.game_engine.exit = True
 		self.currentInterpreter.exit = True
-	
 	
 	def get_engine_output(self):
 		messages = []
@@ -113,7 +108,6 @@ class RpgWindow(Frame):
 		self.output.pack(fill=BOTH,expand=1,side=TOP)
 		self.player_console.pack(fill=BOTH,expand=1,side=BOTTOM)
 		
-		
 		#set up interpreter
 		self.baseInterpreter = Interface(world=self.w,game_out_q=self.game_out_q,parent=self.output)
 		self.currentInterpreter = self.baseInterpreter 
@@ -153,7 +147,6 @@ class Interface(BaseInterface):
 		
 class GameEngine(threading.Thread):
 	
-	
 	def __init__(self,world=None,queue=None,outqueue=None):
 		super(GameEngine,self).__init__(target=self)
 		self.world = world
@@ -185,19 +178,11 @@ class GameEngine(threading.Thread):
 			time.sleep(0.09)
 			request = self.request_queue.get(block=False)
 			for command,s in request.items():
-				print(command)
 				func = getattr(self, command)
-# 				self.cout('game thread processing command %s %s\n'%(command,s))
-				print(func)
 				func(s)
 				self.queue.task_done()
 		except Empty:
 			pass
-
-# 			except AttributeError:
-# 				self.cout('cant find helper function for command %s' % command)
-			
-	
 	
 	def do_exit(self,s):
 		self.out_queue.put(('exit',True))
@@ -214,15 +199,12 @@ class GameEngine(threading.Thread):
 		else:
 			self.cout(self.current_room.roomdesc)
 		
-		
-
 	def do_go(self,s):
 		exits = self.current_room.exits
 		if s in exits.keys():
 			self.current_room = self.world.rooms.get(exits[s])
 			self.do_look(None)
 		
-
 	def do_talk(self,s):
 		if s in self.current_room.talktargets.keys():
 			self.start_dialogue(self.current_room.talktargets.get(s))
@@ -247,9 +229,6 @@ class GameEngine(threading.Thread):
 
 	def dialogue_choice(self,s):
 		self.dialogue_processor.choice(s)
-
-
-
 
 def main():
 # 	w = World()
