@@ -16,3 +16,4 @@ r.looktargets = {'gold': 'oooh. Shiny!\n\n',
  'pile of gold': 'oooh. Shiny!\n\n',
  }
 r.talktargets = {'monster': 'test_monster'}
+r.characters = ['test_monster']

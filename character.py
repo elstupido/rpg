@@ -15,6 +15,7 @@ class Character(object):
     armor_type = 'cloth'
     active_weapon = None
     dead = False
+    attack_on_sight = False
 
 class Npc(Character):
 
@@ -25,10 +26,7 @@ class Npc(Character):
         pass
 
 
-class Player(Character):
 
-    def __init__(self,weapon=None):
-        self.active_weapon = weapon
 
 class Monster(Character):
 
@@ -51,6 +49,11 @@ class Weapon(Item):
     crit_multiplyer = 2
     defense = 0   
 
+
+class Player(Character):
+
+    def __init__(self,weapon=None):
+        self.active_weapon = Weapon()
 
 def main():
     w = Weapon()

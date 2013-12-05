@@ -16,4 +16,5 @@ m.hp = 10
 m.armor_class = 5
 m.defense = 0
 m.attack  = 1
+m.attack_on_sight = True
 m.active_weapon = w

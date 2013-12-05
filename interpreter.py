@@ -1,7 +1,7 @@
 from cmd import Cmd
 import sys
 
-class BaseInterface(Cmd):
+class BaseInterpreter(Cmd):
 
     def __init__(self,world = None,game_out_q=None, stdin=sys.stdin, parent=None):
         Cmd.__init__(self)
@@ -71,7 +71,7 @@ class BaseInterface(Cmd):
         if self.exit:
             return True
         
-class TestInterpreter(BaseInterface):
+class TestInterpreter(BaseInterpreter):
     
     def do_poop(self,s):
         print('got cmmand poop')

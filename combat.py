@@ -1,51 +1,37 @@
 from cmd import Cmd
 from random import randrange
+from interpreter import BaseInterpreter
 
-class FightInterpreter(Cmd,object):
 
-    def __init__(self, completekey='tab', stdin=None, stdout=None,character=None,player=None):
-        import string, sys
-        if stdin is not None:
-            self.stdin = stdin
-        else:
-            self.stdin = sys.stdin
-        if stdout is not None:
-            self.stdout = stdout
-        else:
-            self.stdout = sys.stdout
-        self.cmdqueue = []
-        self.completekey = completekey
-        self.preprompt = self.prompt
-        self.prompt = self.preprompt + '(You %s: %s: %s) ' % (player.hp,character.friendly_name,character.hp)
-        self.character = character
-        self.player = player
-        self.combat = Combat(character = self.character, player = self.player)
-        print('^^^^^^STARTING COMBAT^^^^^^^^^^')
+class FightInterpreter(BaseInterpreter):
+
+    def __init__(self,game_out_q=None, stdin=None, parent=None):
+        super(FightInterpreter,self).__init__(self)
+        self.game_out_q = game_out_q
+        self.game_out_q.put({'cout':'^^^^^^STARTING COMBAT^^^^^^^^^^\n'})
         
 
     def do_attack(self,s):
-        end = self.combat.player_attack()
-        self.updatePrompt()
-        return end
+        self.game_out_q.put({'player_attack':s})
 
     def do_run(self,s):
-        print('you run away, allowing %s to score a crit!' % (self.character.friendly_name) )
-        return True
+        self.game_out_q.put({'cout':'you run away, allowing %s to score a crit!' % (self.character.friendly_name) })
+        self.game_out_q.put({'do_exit':s})
 
-    def updatePrompt(self):
-        self.prompt = self.preprompt + '(You %s: %s: %s) ' % (self.player.hp,self.character.friendly_name,self.character.hp)
 
 
 class Combat(object):
 
-    def __init__(self,character=None,player=None):
+    def __init__(self,character=None,player=None,game_engine=None):
         self.character = character
         self.player = player
+        self.game_engine = game_engine
         
     def roll_dice(self,numsides):
         return randrange(0,numsides+1)
 
     def attack(self,character):
+        print(character)
         dice_sides = character.active_weapon.attack
         roll = self.roll_dice(dice_sides)
         return roll
@@ -55,30 +41,32 @@ class Combat(object):
         roll = self.roll_dice(dice_sides)
         return roll
 
-    def player_attack(self):
+    def player_attack(self,target):
         attack = self.process_attack(attacker=self.player,defender=self.character)
-        print('======You Attack======\nYou attack with your %s\nYou roll %s, %s rolls %s.' % (self.player.active_weapon.friendly_name,
+        self.game_engine.cout('======You Attack======\nYou attack with your %s\nYou roll %s, %s rolls %s.' % (self.player.active_weapon.friendly_name,
                                                                       attack['attack_roll'],
                                                                       self.character.friendly_name,
                                                                       attack['defend_roll'])) 
         if attack['blocked']:
-            print('You are blocked by %s. No damage done.' % self.character.friendly_name )
+            self.game_engine.cout('You are blocked by %s. No damage done.' % self.character.friendly_name )
         elif attack['stunned']:
-            print('%s is stunned by your %s attack!' % (self.character.friendly_name,self.player.active_weapon.damage_type))  
+            self.game_engine.cout('%s is stunned by your %s attack!' % (self.character.friendly_name,self.player.active_weapon.damage_type))  
         elif attack['fumble']:
-            print('You fumble your attack and end up missing completely. No damage done.')
+            self.game_engine.cout('You fumble your attack and end up missing completely. No damage done.')
         else:
             if attack['crit']:
-                print('CRITICAL HIT!')
-            print('You hit for %s %s' % (self.character.friendly_name,attack['damage']) )
+                self.game_engine.cout('CRITICAL HIT!')
+            self.game_engine.cout('You hit for %s %s' % (self.character.friendly_name,attack['damage']) )
             self.apply_damage(character=self.character,damage=attack['damage'])
             
+        self.game_engine.cout('(You %s: %s: %s) ' % (self.player.hp,self.character.friendly_name,self.character.hp))
+        
         if self.character.dead:
-            print('You kill %s\n======YOU WIN!=====\n' % self.character.friendly_name)
+            self.game_engine.cout('You kill %s\n======YOU WIN!=====\n' % self.character.friendly_name)
             return True
         else:
             defend = self.process_attack(attacker=self.character,defender=self.player)
-            print('======%s Counter Attack======\n%s attacks with his %s\nYou roll %s, %s rolls %s.' % (self.character.friendly_name,
+            self.game_engine.cout('======%s Counter Attack======\n%s attacks with his %s\nYou roll %s, %s rolls %s.' % (self.character.friendly_name,
                                                                             self.character.friendly_name,
                                                                             self.character.active_weapon.friendly_name,
                                                                             defend['defend_roll'],
@@ -86,16 +74,17 @@ class Combat(object):
                                                                             defend['attack_roll']) )
 
             if defend['blocked']:
-                print('You deftly block his attack. No damage done.')
+                self.game_engine.cout('You deftly block his attack. No damage done.')
             elif defend['fumble']:
-                print('%s fumbles his attack, missing you completely. No damage done.' % self.character.friendly_name)
+                self.game_engine.cout('%s fumbles his attack, missing you completely. No damage done.' % self.character.friendly_name)
             else:
                 if defend['crit']:
-                    print('CRITICAL HIT!')
-                print('%s hits You for %s' % (self.character.friendly_name,defend['damage']) )
+                    self.game_engine.cout('CRITICAL HIT!')
+                self.game_engine.cout('%s hits You for %s' % (self.character.friendly_name,defend['damage']) )
                 self.apply_damage(self.player,defend['damage'])
+                self.game_engine.cout('(You %s: %s: %s) ' % (self.player.hp,self.character.friendly_name,self.character.hp))
                 if self.player.dead:
-                    print('======YOU ARE DEAD======\nThanks for playing asshole!')
+                    self.game_engine.cout('======YOU ARE DEAD======\nThanks for playing asshole!')
                     return True
                 return False
            

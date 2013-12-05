@@ -12,7 +12,7 @@ class World(object):
         self.characterdir = '.\\characters\\'
         self.rooms = {}
         self.characters = {}
-        self.players = {}
+        self.player = Player()
         self.dialogues = {}
 
     def loadCharacters(self):

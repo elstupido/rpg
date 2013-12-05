@@ -7,9 +7,9 @@ from tkinter import Tk, Frame, BOTH, Text, END, Entry, StringVar, font, RIGHT, \
 	BOTTOM, LEFT, TOP
 
 from character import Player, Weapon
-from combat import FightInterpreter
+from combat import FightInterpreter,Combat
 from dialogue import DialogueInterpreter, DialogueProcessor
-from interpreter import BaseInterface, TestInterpreter
+from interpreter import BaseInterpreter, TestInterpreter
 from load_world import World
 from ui import RPGText
 
@@ -74,14 +74,27 @@ class RpgWindow(Frame):
 							self.status_output.insert(END,'%s\n' % target)
 					if self.game_engine.current_room.characters:
 						self.status_output.insert(END, '\n\nCharacters\n=========\n')
-					for target in self.game_engine.current_room.characters:
-						self.status_output.insert(END, target)
+						for target in self.game_engine.current_room.characters:
+							self.status_output.insert(END, target)
 				if 'dialogue' == message[0]:
 					self.currentInterpreter = self.currentInterpreter.start_dialogue(message[1])
+					self.status_output.delete(1.0, END)
+					self.status_output.insert(END, 'You are in %s' % self.game_engine.current_room.roomname)
+					self.status_output.insert(END, '\nYou are talking to %s\n' % message[1])
+				if 'combat' == message[0]:
+					self.currentInterpreter = self.baseInterpreter
+					self.currentInterpreter = self.currentInterpreter.start_combat(message[1])
+					self.status_output.delete(1.0, END)
+					self.output.insert(END,'\n=!=!=!=!=!=!=!=!=!=!=!=!=!=!=!=\nPrepare to Fight!\n\n\n')
+					self.output.see(END)					
+					self.status_output.insert(END, 'You are in %s' % self.game_engine.current_room.roomname)
+					self.status_output.insert(END, '\nYou are Fighting %s\n' % message[1])
 				if 'exit' == message[0]:
 					self.currentInterpreter = self.baseInterpreter
+					self.output.insert(END,'Exiting...\n\n')
+					self.output.see(END)					
 
-		#call ourselfs agian
+		#call ourself again
 		self.after(1,self.get_engine_output)
 	
 	def get_player_input(self,player_input):
@@ -125,12 +138,17 @@ class RpgWindow(Frame):
 		self.parent.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
 
-class Interface(BaseInterface):
+class Interface(BaseInterpreter):
 
 	def start_dialogue(self,s):
 		print('starting dialogue: %s' % s)
 		i = DialogueInterpreter(stdin=self.stdin,game_out_q=self.game_out_q)
 		i.prompt = self.prompt + ' > ' + s
+		return i
+	
+	def start_combat(self,s):
+		print('starting fight: %s' % s)
+		i = FightInterpreter(stdin=self.stdin,game_out_q=self.game_out_q)
 		return i
 	
 	def do_exit(self,s):
@@ -164,6 +182,7 @@ class GameEngine(threading.Thread):
 		self.exit = False
 		#constructed at 'talk' time
 		self.dialogue_processor = None
+		self.combat_processor = None
 	
 	
 	def run(self):
@@ -203,6 +222,9 @@ class GameEngine(threading.Thread):
 		exits = self.current_room.exits
 		if s in exits.keys():
 			self.current_room = self.world.rooms.get(exits[s])
+			for character in self.current_room.characters:
+				if self.world.characters[character].attack_on_sight:
+					self.start_combat(character)
 			self.do_look(None)
 		
 	def do_talk(self,s):
@@ -216,7 +238,7 @@ class GameEngine(threading.Thread):
 		'''
 		cout: prints output to player console
 		'''
-		self.out_queue.put(('display' , message ))
+		self.out_queue.put(('display' , message + '\n' ))
 	
 	def start_dialogue(self,s):
 		'''
@@ -224,11 +246,20 @@ class GameEngine(threading.Thread):
 		'''
 		#prepare processor
 		self.dialogue_processor = DialogueProcessor(world = self.world,dialogue_name = s,game_engine=self)
-		self.cout(self.dialogue_processor.startDialogue())
+		self.dialogue_processor.startDialogue()
 		self.out_queue.put(('dialogue',s)) 
 
 	def dialogue_choice(self,s):
 		self.dialogue_processor.choice(s)
+		
+	def start_combat(self,s):
+		self.combat_processor = Combat(player = self.world.player,character=self.world.characters.get(s),game_engine=self)
+		self.out_queue.put(('combat',s))
+	
+	def player_attack(self,s):
+		done = self.combat_processor.player_attack(s)
+		if done:
+			self.do_exit(True)
 
 def main():
 # 	w = World()

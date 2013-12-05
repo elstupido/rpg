@@ -1,4 +1,4 @@
-from interpreter import BaseInterface
+from interpreter import BaseInterpreter
 from cmd import Cmd
 
 
@@ -26,7 +26,7 @@ class DialogueProcessor(object):
     def startDialogue(self):
         returnStr = self.dialogue_name.dialogue.get('start') 
         returnStr += '\n\n' + self.displayChoices()
-        return returnStr
+        self.game_engine.cout(returnStr)
     
     def displayChoices(self):
         returnStr = ''
@@ -53,15 +53,18 @@ class DialogueProcessor(object):
                 self.current_blurb = choice
                 if self.dialogue_name.dialogue.get(self.current_blurb):
                     self.game_engine.cout(self.dialogue_name.dialogue.get(self.current_blurb))
+                if self.dialogue_name.startsfight in [choice for index,choice, desc in self.currentChoiceMap]:
+                    self.game_engine.start_combat(self.dialogue_name.character)
+                    break
                 if self.dialogue_name.dialogue.get(self.current_blurb + 'choices'):
                     self.game_engine.cout(self.displayChoices())
-                    break 
+                    break
                 else:
                     print('exiting....')
                     self.game_engine.do_exit(True)
                 
 
-class DialogueInterpreter(BaseInterface):
+class DialogueInterpreter(BaseInterpreter):
     
     dialogue_action = None
     
