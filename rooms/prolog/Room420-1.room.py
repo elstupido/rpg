@@ -12,3 +12,5 @@ r.looktargets = {'blinding light': '(squinting)It apears to be some kind of comp
  'light': '(squinting)It apears to be some kind of computer, "whats that smell? burrned retninas you say"\n\n',
  'monitors': 'two of the monitors have news feeds detailing various horrors, one monitor has a few chat windows up where two people one named shifty and the other stupid seem to be conversing.\n\n',
  'posters': 'various posters striking out at governments and "the new world order." one poster which seems different from the rest. it has no words and no slogans on it just a black masked man watching as countless people walk down a road into a pitch black tunnel.\n\n'}
+r.talktargets = {'garrett' : 'garret_1'}
+r.characters = ['garret_1']
