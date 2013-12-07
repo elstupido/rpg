@@ -16,6 +16,7 @@ class Character(object):
     active_weapon = None
     dead = False
     attack_on_sight = False
+    isMovable = True
 
 class Npc(Character):
 

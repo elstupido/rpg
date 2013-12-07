@@ -12,6 +12,7 @@ from dialogue import DialogueInterpreter, DialogueProcessor
 from interpreter import BaseInterpreter, TestInterpreter
 from load_world import World
 from ui import RPGText
+from random import randrange
 
 
 log = logging.getLogger(__name__)
@@ -174,7 +175,7 @@ class GameEngine(threading.Thread):
 		self.request_queue = queue
 		self.out_queue = outqueue
 		self.status = 'STARTING'
-		self.current_room = self.world.rooms['dormroom']
+		self.current_room = self.world.rooms['testroom']
 		self.DEBUG = True
 		self.starting_wep = Weapon()
 		self.player = Player(self.starting_wep)
@@ -183,18 +184,57 @@ class GameEngine(threading.Thread):
 		#constructed at 'talk' time
 		self.dialogue_processor = None
 		self.combat_processor = None
-	
+		self.currentCharacterMap = {}
+		self.current_state = ['loading']
 	
 	def run(self):
-		start_time = time.time()
+		last_move_time = time.mktime(time.localtime())
+		move_timer = 90
 		while True:
-			self.processUpdates()
+			time.sleep(0.09)
+			curr_time = time.mktime(time.localtime())
+			self.processMessages()
+			if 'combat' not in self.current_state:
+				if curr_time > last_move_time + move_timer:
+					print('updating mobs') 
+					self.updateMonsters()
+					last_move_time = time.mktime(time.localtime())
 			if self.exit:
 				return True
 	
-	def processUpdates(self):
+	def updateCharacterMap(self):
+		self.currentCharacterMap = {}
+		for roomname, room in self.world.rooms.items():
+			if room.characters:
+				for character in room.characters:
+					if self.world.characters.get(character).isMovable:
+						self.currentCharacterMap[character] = room
+	
+			
+	
+	def updateMonsters(self):
+		self.updateCharacterMap()
+		for character, room in self.currentCharacterMap.items():
+			if room.exits:
+				for exit_name,exit in room.exits.items():
+					print(exit)
+					exit_room = self.world.rooms.get(exit)
+					print(exit_room)
+					if exit_room.mobsAllowed:
+						room.characters.remove(character)
+						exit_room.characters.append(character)
+						if character in self.current_room.characters: 
+							if self.world.characters.get(character).attack_on_sight:
+								self.start_combat(character)
+						break
+					
+						
+					
+						
+		
+	
+	def processMessages(self):
 		try:
-			time.sleep(0.09)
 			request = self.request_queue.get(block=False)
 			for command,s in request.items():
 				func = getattr(self, command)
@@ -204,6 +244,7 @@ class GameEngine(threading.Thread):
 			pass
 	
 	def do_exit(self,s):
+		self.current_state = 'idle'
 		self.out_queue.put(('exit',True))
 	
 	def do_look(self,s):
@@ -223,7 +264,7 @@ class GameEngine(threading.Thread):
 		if s in exits.keys():
 			self.current_room = self.world.rooms.get(exits[s])
 			for character in self.current_room.characters:
-				if self.world.characters[character].attack_on_sight:
+				if self.world.characters.get(character).attack_on_sight:
 					self.start_combat(character)
 			self.do_look(None)
 		
@@ -245,6 +286,7 @@ class GameEngine(threading.Thread):
 		start_dialogue: starts a dialogue
 		'''
 		#prepare processor
+		self.current_state = ['dialogue']
 		self.dialogue_processor = DialogueProcessor(world = self.world,dialogue_name = s,game_engine=self)
 		self.dialogue_processor.startDialogue()
 		self.out_queue.put(('dialogue',s)) 
@@ -253,6 +295,7 @@ class GameEngine(threading.Thread):
 		self.dialogue_processor.choice(s)
 		
 	def start_combat(self,s):
+		self.current_state = ['combat']
 		self.combat_processor = Combat(player = self.world.player,character=self.world.characters.get(s),game_engine=self)
 		self.out_queue.put(('combat',s))
 	

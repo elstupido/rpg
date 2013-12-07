@@ -10,6 +10,7 @@ class Room(object):
         self.talktargets = []
         self.hide_exits = []
         self.hide_looktargets = []
+        self.mobsAllowed = True
 
     
     

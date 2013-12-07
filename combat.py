@@ -15,7 +15,7 @@ class FightInterpreter(BaseInterpreter):
         self.game_out_q.put({'player_attack':s})
 
     def do_run(self,s):
-        self.game_out_q.put({'cout':'you run away, allowing %s to score a crit!' % (self.character.friendly_name) })
+        self.game_out_q.put({'cout':'you run away!'})
         self.game_out_q.put({'do_exit':s})
 
 

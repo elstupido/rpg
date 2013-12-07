@@ -16,3 +16,4 @@ r.looktargets = {'object': 'You cant seem to descern what it is\n\n',
  'tablecloth': 'perfect white linen tablecloth. Nice!\n\n\n',
 }
 r.talktargets = {'old man':'test_npc'}
+r.characters = ['test_npc']
